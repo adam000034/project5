@@ -1,0 +1,38 @@
+/* Complex classes & arrays */
+/* Semantically correct */
+
+class base {
+   int x;
+   int y[];
+}
+
+class mid {
+   base w[];
+   int z;
+}
+
+class complex {
+   base x;
+   mid v;
+   mid w[][];
+}
+
+void main() {
+   base x;
+   mid y;
+   complex z;
+   int IntArray1[][][];
+   int IntArray2[][];
+   int IntArray3[];
+
+   z.v = y;   
+   z.v.w[2].x = 4;
+   z.w[2][4].w[5].y[x.x] = 5;
+   z.w[y.z][z.x.x].w[3].y = IntArray1[2][z.v.w[3].x];
+
+  
+   IntArray1[1] = IntArray2;
+   IntArray1[2][3] = IntArray3;
+   IntArray3 = IntArray2[4];
+   IntArray1[3][5] = IntArray3;
+}

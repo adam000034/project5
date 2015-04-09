@@ -1,0 +1,28 @@
+/* Statements       */
+/* Contains Semantic Errors  */
+
+class C1 {
+   boolean x;
+   int y;
+}
+
+void main() {
+  int x;
+  boolean y;
+  NotAType z;            /* Type z note defined */
+  C1 myClass;
+
+  x = 3 + true;          /* Can't add int and boolean */
+  x = (3 > 4) || y;      /* Type mismatch on assignment */  
+  y = (x == 4) || !y;     /* No errors this line */
+  y = (x + 4 > 3) && !x;  /* Type mismatch on negation */
+  if (x + 2)             /* if test not a boolean */
+     x++;
+  if (myClass.x) myClass.y++; /* No errors this line */
+  if (myClass.y)         /* if test not a boolean */
+      myClass.x++;       /* Can't increment a boolean variable */
+  while (3) x++;         /* While test must be a boolean */
+  while (Read()) x++;    /* While test must be a boolean */
+  while (Read() > 3) x++;    /* no errors */
+  
+}

@@ -1,0 +1,32 @@
+/* Functions        */
+/* Semantic Errors  */
+
+void bar(int x);
+
+void bar(boolean x) {  /*function doesn't match prototype */
+   return 3;           /* return type doesn't match */
+}
+
+int foo(int x, boolean y) {
+   int z;
+   return true;           /* return type doesn't match funtion def */
+}
+
+int f(int x, boolean y) {
+   if (y) 
+      return x;
+   else
+      return 2*x;
+}
+
+void main() {
+  int x;
+  boolean y;
+
+  x = f(3,4);               /* Type mismatch on function parameter */
+  x = f(3, true, 4);        /* Too many actual parameters */
+  x = f(3);                 /* Not enough actual parameters */
+  f(3, true);               /* f not a void function  */
+  x = f(3, f(3, true));     /* Type mismatch on function parameter */
+  x = f(f(4, true), false); /* No errors this line */
+}
