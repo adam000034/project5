@@ -1,0 +1,647 @@
+/* 
+ * PROJECT 3
+ * AUTHORS: Austin Au-Yeung, Adam Toth-Fejel
+ */
+ 
+options {
+  IGNORE_CASE=true;
+}
+
+PARSER_BEGIN(simplejava)
+
+public class simplejava {
+	public static boolean emptyparams = true;	
+	public static boolean functioncall = false;
+}
+
+PARSER_END(simplejava)
+
+TOKEN_MGR_DECLS : 
+{
+	public static int nestedcomments = 0;
+}
+
+SKIP : 
+{
+  	< " " >
+|   < "\\t">
+|   < "\t">
+|	< "EOF">
+|	< "\n">
+|	< "/*" > { nestedcomments++; SwitchTo(IN_COMMENT);}
+|	< "//" (~["\n"])* "\n" >
+}
+
+<IN_COMMENT>
+SKIP :
+{
+	< "*/" > { nestedcomments--; if (nestedcomments == 0) SwitchTo(DEFAULT);}
+|	< "/*" > { nestedcomments++; }
+|	< ~[] >
+}
+
+TOKEN : 
+{
+	< ELSE: "else">
+|	< FOR: "for">
+|	< IF: "if">
+|	< WHILE: "while">
+|	< DO: "do">
+|	< CLASS: "class">
+|	< TRUE: "true">
+|	< FALSE: "false">
+|	< RETURN: "return">
+|	< NEW: "new">
+}
+
+TOKEN : 
+{
+	< PLUS: "+" >
+|	< SEMICOLON: ";">
+|	< MINUS: "-">
+|	< TIMES: "*">
+|	< DIVIDE: "/">
+|	< EQUAL: "==">
+|	< GREATER_THAN: ">">
+|	< NOT: "!">
+|	< LEFT_BRACE: "{">
+|	< LEFT_BRACKET: "[">
+|	< RIGHT_BRACKET: "]">
+|	< PERIOD: ".">
+|	< COMMA: ",">
+|	< GREATER_THAN_OR_EQUAL_TO: ">=">
+|	< AND: "&&">
+|	< RIGHT_BRACE: "}">
+|	< LEFT_PARENTHESIS: "(">
+|	< RIGHT_PARENTHESIS: ")">
+|	< NOT_EQUAL: "!=">
+|	< LESS_THAN_OR_EQUAL_TO: "<=">
+|	< LESS_THAN: "<">
+|	< GETS: "=">
+|	< OR: "||">
+|	< ADD: "++">
+|	< MINUSMINUS: "--">
+|   < INTEGER_LITERAL: (["0"-"9"])+>
+|	< IDENTIFIER: ["a"-"z", "_"](["_", "a"-"z","0"-"9"])*>
+
+}
+
+ASTOperatorExpression incrementstatement(ASTVariable variable) :
+{}
+{
+	/* {System.out.println("I hit incrementstatement.");} */
+	<ADD>	
+	{return new ASTOperatorExpression(new ASTVariableExpression(variable, variable.line()), new ASTIntegerLiteral(1, variable.line()), "+", variable.line());}
+}
+
+ASTOperatorExpression decrementstatement(ASTVariable variable) :
+{}
+{
+	<MINUSMINUS>	
+	{return new ASTOperatorExpression(new ASTVariableExpression(variable, variable.line()), new ASTIntegerLiteral(1, variable.line()), "-", variable.line());}
+}
+
+ASTProgram program() :
+{
+	ASTClasses classes = new ASTClasses();
+	ASTClass classdef = null;
+	ASTFunctionDefinitions functiondefinitions = new ASTFunctionDefinitions();
+	ASTFunctionDefinition funcdef = null;
+}
+{    
+	/* {System.out.println("I hit program.");} */
+	/* 1) 0 or more class defs	2) 0 or more function defs	3) EOF */
+	((classdef = classdefinitions() {if (classes != null) classes.addElement(classdef);})*) 
+	((funcdef = functionprototypeordefinition() {if (funcdef != null) functiondefinitions.addElement(funcdef);})*) 
+	<EOF>
+	{	if (classdef != null)
+			return new ASTProgram(classes, functiondefinitions, classdef.line());
+		else
+			return new ASTProgram(classes, functiondefinitions, 0);
+	} 
+}
+
+ASTFunctionDefinition functionprototypeordefinition() :
+{Token type; Token name; ASTFormals formals = new ASTFormals(); ASTStatements body = new ASTStatements(); int line; ASTEmptyStatement semicolonchecker = null; ASTStatement returnedstatement = null;}
+{
+	/* {System.out.println("I hit functiondefinition.");} */
+	type = <IDENTIFIER> name = <IDENTIFIER> <LEFT_PARENTHESIS> ((formals = formalparameterlist())?) <RIGHT_PARENTHESIS> (semicolonchecker = emptystatement() | <LEFT_BRACE> ((returnedstatement = statement() {if (returnedstatement != null)body.addElement(returnedstatement);})*) <RIGHT_BRACE>)
+	{if (semicolonchecker != null) {
+		return new ASTPrototype(type.image, name.image, formals, type.beginLine);
+	}else {
+		return new ASTFunction(type.image, name.image, formals, body, type.beginLine);
+	}}
+}
+
+//void functionendingafterparen() :
+//{}
+//{
+	/* FUNCTION PROTOTYPE */
+//	<SEMICOLON>
+	/* FUNCTION DEFINITION */
+//|	<LEFT_BRACE> ((statement())*) <RIGHT_BRACE>
+//}
+
+ASTFormals formalparameterlist() :
+{ASTFormals formals = new ASTFormals(); ASTFormal formal = null;}
+{
+	(formal = formalparameter()) {if (formal != null) {formals.addElement(formal);}}
+	((<COMMA> formal = formalparameter() {if (formal != null) {formals.addElement(formal);}})*) 
+	{return formals;}
+}
+
+ASTFormal formalparameter() :
+{Token type; Token name; int arraydimension = 0;}
+{
+	type = <IDENTIFIER> name = <IDENTIFIER> arraydimension = variabledeclarations()
+	{return new ASTFormal(type.image, name.image, arraydimension, type.beginLine);}
+}
+
+int variabledeclarations() :
+/* {Token onetok = null; Token twotok = null;} */
+{int counter = 0;}
+{	
+	/*((onetok = <LEFT_BRACKET>) (twotok = <RIGHT_BRACKET>))* */
+	(((<LEFT_BRACKET>) (<RIGHT_BRACKET>)) {counter++;})* 
+	/* {if (onetok != null && twotok != null) {return true;} else {return false;}} */
+	{return counter;}
+}
+
+ASTInstanceVariableDefs variabledefinitions() :
+{ASTInstanceVariableDefs variabledefs = new ASTInstanceVariableDefs(); ASTInstanceVariableDef variabledef = null; int counter = 0; Token type; Token name;}
+{
+	(((type = <IDENTIFIER> name = <IDENTIFIER> (counter = variabledeclarations())<SEMICOLON>){
+	if (counter == 0) {
+		variabledef = new ASTInstanceVariableDef(type.image, name.image, type.beginLine);
+		variabledefs.addElement(variabledef);
+	} else {
+		variabledef = new ASTInstanceVariableDef(type.image, name.image, counter, type.beginLine);
+		variabledefs.addElement(variabledef);
+	}	
+
+	})*)
+	{return variabledefs;}
+}
+
+ASTExpression expressionlist(String nameoffunction, Token variabletoken) :
+{ASTExpression expressioncatch = null; ASTFunctionCallExpression funccall = new ASTFunctionCallExpression(nameoffunction, variabletoken.beginLine);}
+{
+	/*public ASTFunctionCallStatement(String name, ASTExpression formal, int line) { */
+	expressioncatch = expression() {if (expressioncatch != null) funccall.addElement(expressioncatch);}((<COMMA>expressioncatch = expression() {if (expressioncatch != null) funccall.addElement(expressioncatch);})*)
+	{return funccall;}
+}
+
+//void statementlist() :
+//{}
+//{
+//	statement()((statement())*)
+//}
+
+ASTVariable variable(ASTVariable passedinvar) :
+{ASTVariable var = null;}
+{
+	/* {System.out.println("I hit variable.");} */
+	((var = followsvariables(passedinvar))?)
+	{return var;}
+	
+}
+
+//void followsclassdefinitionstypes() :
+//{}
+//{
+/* HAVE  TO CONSIDER THI CASE EVENTUALLY */
+//	<LEFT_BRACKET> ((followsbracketsone())+) 
+//}
+
+ASTClass classdefinitions() :
+{ASTClass astclass = null; Token stringt; ASTInstanceVariableDefs variabledefs = null;}
+{
+	/*{System.out.println("Hit classdefinitions.");} */
+	/* Get value of identifier so that identifier will not show up in the body */
+	<CLASS> stringt = <IDENTIFIER> <LEFT_BRACE> variabledefs = variabledefinitions() <RIGHT_BRACE>
+	{astclass = new ASTClass(stringt.image, variabledefs, stringt.beginLine);}
+	{return astclass;}
+}
+
+ASTStatement statement() :
+/* POSSIBLE PROBLEMS WITH INTIALIZING ARRAYVARIABLETOKEN TO BE NULL */
+{ASTForStatement forstatement; ASTDoWhileStatement dowhile; ASTStatement body; ASTAssignmentStatement assignstate; ASTVariable avariable = null; Token arrayvariabletoken = null; ASTExpression expression = null; int bracketcounter= 0; Token generaltoken; ASTVariable passedinvariable; ASTStatements returner = new ASTStatements();
+ASTVariable bvariable = null; ASTBaseVariable basevariable = null; ASTIfStatement ifstatement;
+ASTFunctionCallStatement funccallstate = null; ASTStatement params = null; ASTVariable variableforfollowsvariablenames = null;}
+{
+	/*{System.out.println("I HIT STATEMENT.");} */
+	dowhile = dowhilestatement() 
+	{return dowhile;}
+|	generaltoken = <RETURN> ((expression = expression())?) <SEMICOLON> 
+	{return new ASTReturnStatement(expression, generaltoken.beginLine);}
+|	generaltoken = <WHILE> <LEFT_PARENTHESIS> expression = expression() <RIGHT_PARENTHESIS> body = statement()
+	{return new ASTWhileStatement(expression, body, generaltoken.beginLine);}
+|	generaltoken = <IF> ifstatement = ifstatement() 
+	{return ifstatement;}
+|	forstatement = forstatement()
+	{return forstatement;}
+|	<LEFT_BRACE> ((body = statement() {if (body != null) returner.addElement(body);})*) <RIGHT_BRACE>
+	{return returner;}
+	/* Note: bvariable correlates to followsvariables */
+|	generaltoken = <IDENTIFIER> {passedinvariable = new ASTBaseVariable(generaltoken.image, generaltoken.beginLine);} 
+	(
+	(arrayvariabletoken= <IDENTIFIER>  bracketcounter = variabledeclarations() { avariable = new ASTBaseVariable(arrayvariabletoken.image, arrayvariabletoken.beginLine);})
+	| (bvariable = variable(
+	/* MAKE SURE TO MAKE CHANGES, was semicolon before but now is emptystatement because they mean the same thing */
+	passedinvariable))
+	) {if (bvariable != null) {variableforfollowsvariablenames = bvariable;} else if (avariable==null) {variableforfollowsvariablenames = passedinvariable;} else {variableforfollowsvariablenames = avariable;}}
+	(((expression = followsvariablenames(variableforfollowsvariablenames)) | (params = functioncall(token)))?)
+	emptystatement() {	
+		/*This handles the case: int a; */
+		if (bracketcounter == 0 && arrayvariabletoken != null && bvariable == null && expression == null) {	
+			//{System.out.println("0");}
+			return new ASTVariableDefStatement(generaltoken.image, arrayvariabletoken.image, generaltoken.beginLine);
+		}
+		/* This handles the case: a = 4 + 3; */
+		if (!functioncall && bracketcounter == 0 && bvariable == null && expression != null && avariable == null) {
+			//{System.out.println("1");}
+		
+			basevariable = new ASTBaseVariable(generaltoken.image, generaltoken.beginLine);
+			return new ASTAssignmentStatement(basevariable, expression, generaltoken.beginLine);
+		}
+		/* This handles the case: a[3]=4+3; */
+		if (bracketcounter != 0 && bvariable != null && expression != null && avariable == null) {
+					//{System.out.println("2");}
+		
+			basevariable = new ASTBaseVariable(generaltoken.image, generaltoken.beginLine);
+			return new ASTAssignmentStatement(basevariable, expression, generaltoken.beginLine);
+		}
+		/* This handles the case: int x = 5 + 3;*/
+		if (!functioncall && bracketcounter == 0 && bvariable == null && expression != null) {
+					//{System.out.println("3");}
+		
+			return new ASTVariableDefStatement(generaltoken.image, arrayvariabletoken.image, expression,generaltoken.beginLine);
+		}
+		/* This handles the case: int z[]; */
+		if (bracketcounter != 0 && bvariable == null && expression == null) {
+					//{System.out.println("4");}
+					
+			return new ASTVariableDefStatement(generaltoken.image, arrayvariabletoken.image, bracketcounter,generaltoken.beginLine);
+		}
+		/* This handles the case: int z[3][] = 4 + 2; */
+		if (!functioncall && bracketcounter != 0 && bvariable == null && expression != null) {
+					//{System.out.println("5");}
+			
+			return new ASTVariableDefStatement(generaltoken.image, arrayvariabletoken.image, bracketcounter, expression, generaltoken.beginLine);
+		}
+		/* This handles the case: */
+		if (!functioncall && arrayvariabletoken == null && bvariable != null && expression != null) {
+					//{System.out.println("6");}
+			
+			return new ASTAssignmentStatement(bvariable, expression, generaltoken.beginLine);
+		}
+		if (!emptyparams && params!= null && passedinvariable != null && bvariable == null && avariable == null) {
+					//{System.out.println("7");}
+			functioncall = false;
+			emptyparams = true;
+			/*funccallstate = new ASTFunctionCallStatement(generaltoken.image, expression, generaltoken.beginLine);*/		
+			return params;
+		}
+		if (emptyparams && passedinvariable != null && bvariable == null && avariable == null) {
+					//{System.out.println("8");}
+			functioncall = false;
+			funccallstate = new ASTFunctionCallStatement(generaltoken.image, generaltoken.beginLine);			
+			return funccallstate;
+		}
+	
+		if (expression == null || bvariable == null) {return null;} 
+		else {return new ASTAssignmentStatement(avariable, expression, arrayvariabletoken.beginLine);} 
+		
+	}
+	
+|	body = emptystatement() {return body;}
+}
+
+ASTIfStatement ifstatement() :
+{ASTExpression test; ASTStatement thenstatement; ASTStatement elsestatement = null; Token linenumbercatcher;}
+{
+	linenumbercatcher = <LEFT_PARENTHESIS> test = expression() <RIGHT_PARENTHESIS> thenstatement = statement() ((LOOKAHEAD(1) <ELSE> elsestatement = statement())?) 
+	{return new ASTIfStatement(test, thenstatement, elsestatement, linenumbercatcher.beginLine);}
+}
+
+ASTEmptyStatement emptystatement() :
+{Token semicolontoken; ASTEmptyStatement returnstate;}
+{
+	semicolontoken = <SEMICOLON>
+	{returnstate = new ASTEmptyStatement(semicolontoken.beginLine);}
+	{return returnstate;}
+}
+
+ASTDoWhileStatement dowhilestatement() :
+{Token generaltoken; ASTExpression test = null; ASTStatement body;}
+{
+	generaltoken = <DO> body = statement() <WHILE> <LEFT_PARENTHESIS> test = expression() <RIGHT_PARENTHESIS> 
+	{return new ASTDoWhileStatement(test, body, generaltoken.beginLine);} 
+}
+
+ASTExpression initialization(ASTVariable variable) :
+{ASTExpression returnval;}
+{
+	/* {System.out.println("initialization is hit.");} */
+	returnval = incrementstatement(variable)
+	{return returnval;}
+|	returnval = decrementstatement(variable)
+	{return returnval;}
+|	returnval = assignmentstatement()
+	{return returnval;}
+}
+
+ASTForStatement forstatement() :
+{Token fortoken;
+Token identifier; ASTBaseVariable initvar; ASTExpression initexp = null; ASTAssignmentStatement init = null; 
+ASTExpression test = null; 
+Token variable; ASTBaseVariable basevar; ASTExpression incrementexp = null; ASTAssignmentStatement increment = null;
+ASTStatement body;}
+{
+	/*Second initialization() is actually increment from book */
+	fortoken = <FOR> <LEFT_PARENTHESIS> 
+		/* initialization */
+		((identifier = <IDENTIFIER> 
+			{initvar = new ASTBaseVariable(identifier.image, identifier.beginLine);} 
+			initexp = followsvariablenames(initvar) 
+			{init = new ASTAssignmentStatement(initvar, initexp, identifier.beginLine);})?) 
+			<SEMICOLON> 
+		/* test */
+		test = expression() <SEMICOLON>
+		/* increment */ 
+		((variable = <IDENTIFIER> {basevar = new ASTBaseVariable(variable.image, variable.beginLine);} incrementexp = initialization(basevar) 
+			{increment = new ASTAssignmentStatement(basevar, incrementexp, variable.beginLine);} )?) 
+	<RIGHT_PARENTHESIS> 
+		body = statement()
+	{return new ASTForStatement(init, test, increment, body, fortoken.beginLine);} 
+}
+
+ASTExpression expression() :
+{Token t;ASTExpression result; ASTExpression rhs;}
+{
+	/* {System.out.println("Hit expression here.");} */
+	result = expone()((((t = <OR>) rhs =expone())
+	{
+		result = new ASTOperatorExpression(result, rhs, t.image, t.beginLine);
+	})*)
+	{ return result; }
+}
+
+ASTExpression expone() :
+{Token t; ASTExpression result; ASTExpression rhs; }
+{
+	result = exptwo()((((t= <AND>) rhs = exptwo())
+	{
+		result = new ASTOperatorExpression(result, rhs, t.image, t.beginLine);
+	}
+	)*)
+	{ return result;}
+}
+
+ASTExpression exptwo() :
+{Token t = null; ASTExpression result; ASTExpression rhs;}
+{
+	/*result = expthree()((((t=<NOT>) rhs = expthree())
+	{
+		result = new ASTOperatorExpression(result, rhs, t.image, t.beginLine);
+	})*)
+	{ return result;}*/
+	
+	((t=<NOT>)?) rhs = expthree()
+	{if (t != null) {
+		result = new ASTUnaryOperatorExpression(rhs, t.image, t.beginLine);
+		return result;
+	} else {
+		result = rhs;
+		return result;
+	}
+	}
+	
+}
+
+ASTExpression expthree() :
+{Token t; ASTExpression result; ASTExpression rhs;}
+{
+	result = expfour()((((t=<EQUAL> | t=<NOT_EQUAL> | t=<LESS_THAN> | t=<LESS_THAN_OR_EQUAL_TO> | t=<GREATER_THAN> | t=<GREATER_THAN_OR_EQUAL_TO>) rhs = expfour())
+		{
+			result = new ASTOperatorExpression(result, rhs, t.image, t.beginLine);
+		}
+		)*)
+	{ return result;}	
+}
+
+ASTExpression expfour() :
+{Token t; ASTExpression result; ASTExpression rhs;}
+{
+	result = expfive()((((t= <PLUS> | t= <MINUS>) rhs = expfive())
+					{ 
+						result = new ASTOperatorExpression(result, rhs, t.image, t.beginLine);
+					}
+					)*)
+	{ return result;}
+}
+
+ASTExpression expfive() :
+{Token t; ASTExpression result; ASTExpression rhs;}
+{
+	result = F()((((t = <TIMES> | t= <DIVIDE>) rhs = F())
+					{ 
+					  result = new ASTOperatorExpression(result, rhs, t.image, t.beginLine);
+					}
+					 )*)
+	{ return result;}
+}
+
+ASTExpression F() :
+{Token t; ASTExpression value = null; ASTVariable variable = null; ASTVariableExpression variableexpression= null; ASTVariable returnvariable = null; ASTExpression functioncallexpression = null; ASTExpression incrementexpression = null;}
+{
+
+	<MINUS>value = F() {return new ASTOperatorExpression(new ASTIntegerLiteral(0, 0), value, ASTOperatorExpression.MINUS, 0);}
+|	t = <INTEGER_LITERAL> { return new ASTIntegerLiteral(Integer.parseInt(t.image), t.beginLine);}
+|	t = <TRUE> { return new ASTBooleanLiteral(Boolean.parseBoolean(t.image), t.beginLine);}
+|	t = <FALSE> {return new ASTBooleanLiteral(Boolean.parseBoolean(t.image), t.beginLine);}
+|	t = <IDENTIFIER> ((functioncallexpression = expressionfunctioncalls(t, t.image))?) {if (functioncallexpression != null ) {return functioncallexpression;}} {variable = new ASTBaseVariable(t.image, t.beginLine);} ((incrementexpression = incrementstatements(variable))?) {if (incrementexpression != null) {return incrementexpression;}}  ((variable = followsvariablenamesforexpressions(variable, t.image))?) {variableexpression = new ASTVariableExpression(variable, variable.line());}	{
+if (variableexpression != null) {
+	return variableexpression;
+}}
+|	<NEW> t = <IDENTIFIER> value = followsnewandidentifier(t) {return value;}
+|	<LEFT_PARENTHESIS> value = expression()<RIGHT_PARENTHESIS>{return value;}
+}
+
+ASTExpression assignmentstatement() :
+{ASTExpression value;}
+{
+	<GETS> value = expression() {return value;}
+
+}
+
+ASTExpression followsnewandidentifier(Token t) :
+{ASTExpression returnresult = null;}
+{
+	<LEFT_BRACKET> (returnresult = followsbrackets(t)) {return returnresult;}
+|	<LEFT_PARENTHESIS><RIGHT_PARENTHESIS> {return new ASTNewClassExpression(t.image, t.beginLine);}
+	{return null;}
+}
+
+ASTExpression incrementstatements(ASTVariable basevar) :
+{ASTAssignmentStatement assignstatement; ASTVariable variable; ASTExpression expression = null;}
+{
+	/* {System.out.println("I HIT INCREMENTSTATEMENT");} */
+	/*ASTAssignmentStatement(variable, ASTExpression value, int line) { */
+	expression = incrementstatement(basevar)
+	{return expression;}
+|	expression = decrementstatement(basevar) 
+	{return expression;}
+}
+
+
+ASTVariable followsvariables(ASTVariable astvar) :
+{ASTArrayVariable arrayvar; ASTExpression express; ASTClassVariable nextvariable; Token variabletoken = null; ASTVariable returnvariable = null; ASTVariable nullcase = null; ASTBaseVariable basevariable;}
+{
+	/* {System.out.println("I HIT FOLLOWSVARIABLES.");} */
+	((<PERIOD> variabletoken = <IDENTIFIER> 
+		{nextvariable = new ASTClassVariable(astvar, variabletoken.image, variabletoken.beginLine);}
+		
+		)((returnvariable = followsvariables(nextvariable))?)
+			{if (returnvariable == null) {
+				return nextvariable;
+				}
+			else {
+				return returnvariable;
+				}
+			}
+	)
+	(((returnvariable = followsvariables(astvar))
+	{
+		return returnvariable;
+	}
+	)?) {return nextvariable;}
+	//////////////////////////////////////////////////////////////////////////
+
+	//TOKEN USED IN SECOND CASE JUST TO CAPTURE LINE NUMBER FOR NOW
+|	((<LEFT_BRACKET> express = expression() variabletoken = <RIGHT_BRACKET> 
+			{arrayvar =  new ASTArrayVariable(astvar, express, variabletoken.beginLine);}
+			
+	)((returnvariable = followsvariables(arrayvar))?) 
+					{if (returnvariable == null) {
+						return arrayvar;
+						} 
+					else {
+						return returnvariable;
+						}
+					}
+	) 
+	(((returnvariable = followsvariables(astvar))
+	{
+		return returnvariable;
+	}
+	)?) {return arrayvar;}
+{return nullcase;}
+	
+	
+}
+
+ASTExpression followsvariablenames(ASTVariable variable) :
+{ASTExpression value = null; ASTClassVariable classvar = null;}
+{
+	/* {System.out.println("I hit followsvariablenames");} */
+	value = assignmentstatement() 
+	{return value;} 
+|	value = incrementstatements(variable) 
+	{return value;}
+
+}
+
+ASTStatement functioncall(Token token) :
+{ASTStatement params = null;}
+{
+	<LEFT_PARENTHESIS> ((params = paramslist(token.image, token))?) <RIGHT_PARENTHESIS>
+	{
+		functioncall = true;
+		if (params != null)
+			emptyparams = false; 
+		return params;
+	}
+}
+
+ASTStatement paramslist(String nameoffunction, Token variabletoken) :
+{ASTExpression expressioncatch = null; ASTFunctionCallStatement funccall = new ASTFunctionCallStatement(nameoffunction, variabletoken.beginLine);}
+{
+	/*public ASTFunctionCallStatement(String name, ASTExpression formal, int line) { */
+	expressioncatch = expression() {if (expressioncatch != null) funccall.addElement(expressioncatch);}((<COMMA>expressioncatch = expression() {if (expressioncatch != null) funccall.addElement(expressioncatch);})*)
+	{return funccall;}
+}
+
+ASTExpression expressionfunctioncalls(Token token, String nameoffunction) :
+{ASTExpression expression; Token variabletoken; ASTFunctionCallExpression funccall; ASTExpression result = null;}
+{
+	variabletoken = <LEFT_PARENTHESIS> ((result = expressionlist(token.image, token))?)	<RIGHT_PARENTHESIS>
+	{
+		if (result == null)
+			return new ASTFunctionCallExpression(token.image, token.beginLine);
+		else
+			return result;
+	}
+}
+
+ASTVariable followsvariablenamesforexpressions(ASTVariable variable, String nameoffunction) :
+{ASTExpression result = null; ASTArrayVariable arrayvar = null; ASTClassVariable classvar = null; Token variabletoken; ASTBaseVariable basevar = null; ASTVariable returnvariable = null;
+ASTFunctionCallExpression funccall = null;}
+{
+	variabletoken = <IDENTIFIER> {basevar = new ASTBaseVariable(variabletoken.image, variabletoken.beginLine);} 
+	((returnvariable = followsvariablenamesforexpressions(basevar, nameoffunction))?)
+	{	if (returnvariable == null)
+			return basevar;
+		else 
+			return returnvariable; 
+	} 
+
+//--------------------------------------------------------------------------------------------------
+|	((<PERIOD> variabletoken = <IDENTIFIER> 
+	{classvar = new ASTClassVariable(variable, variabletoken.image, variabletoken.beginLine);})
+	((returnvariable = followsvariablenamesforexpressions(classvar, nameoffunction))?)
+		{if (returnvariable == null) {
+			return classvar;
+			}
+		else {
+			return returnvariable; 
+			}
+		}
+	)
+	(((returnvariable = followsvariablenamesforexpressions(variable, nameoffunction))
+	{
+		return returnvariable;
+	}
+	)?) {return classvar;}
+//--------------------------------------------------------------------------------------------------
+|	((<LEFT_BRACKET> result = expression() variabletoken = <RIGHT_BRACKET>
+	{arrayvar = new ASTArrayVariable(variable, result, variabletoken.beginLine);}
+	)((returnvariable = followsvariablenamesforexpressions(arrayvar, nameoffunction))?)
+		{if (returnvariable == null) {
+			return arrayvar;
+			}
+		else {
+			return returnvariable;
+			}
+		}
+	)
+	(((returnvariable = followsvariablenamesforexpressions(variable, nameoffunction))
+	{
+		return returnvariable;
+	}
+	)?) {return arrayvar;}
+//--------------------------------------------------------------------------------------------------
+
+}
+
+//void followsbracketsone() :
+//{}
+//{
+//	expression() <RIGHT_BRACKET> (((<LEFT_BRACKET><RIGHT_BRACKET>)))
+//}
+
+ASTExpression followsbrackets(Token t) :
+{int counter = 0; ASTExpression value = null;}
+{
+	value = expression() <RIGHT_BRACKET> {counter++;}(((<LEFT_BRACKET><RIGHT_BRACKET>){counter++;})*) {return new ASTNewArrayExpression(t.image, value, counter, t.beginLine);}
+}

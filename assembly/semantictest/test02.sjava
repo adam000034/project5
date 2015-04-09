@@ -1,0 +1,50 @@
+/* Complex classes & arrays */
+/* Contains semantic errors */
+
+class base {
+   int x;
+   int y[];
+}
+
+class mid {
+   base w[];
+   boolean z;
+}
+
+class complex {
+   base x;
+   mid v;
+   mid w[][];
+}
+
+void main() {
+   boolean v;
+   base x;
+   mid y;
+   complex z;
+   int IntArray1[][][];
+   int IntArray2[][];
+   int IntArray3[];
+ 
+   IntArray1[1][2] = IntArray2; /* Type mismatch on assignment */
+   IntArray1[1] = IntArray3;    /* Type mismatch on assignment */ 
+   z.v.z = 4;                   /* Type mismatch -- int/bool */
+   IntArray3[z.v.z] = 5;        /* Array index is boolean, not integer */
+   z.w[4].z = true;             /* z is not a field of z.w[4]   */
+                                /* (May cause some cascading errors) */
+   z.v.z = x.x;                 /* Type mismatch -- int/bool */
+   w[3].x = 4;                  /* variable w does not exists */
+                                /* (May cause some cascading errors) */
+   z.y = 3;                     /*  Variable does not have filed y */
+                                /* (May cause some cascading errors) */
+   x[3] = 5;                    /*  x is not an array variable      */
+                                /* (May cause some cascading errors) */
+   v.x = q;                     /* Variable q does not exist, variable
+                                   v is not a class variable  */
+   base.x = 3;                  /* base is not a variable */
+   { 
+     int w;                     
+      w++;           
+   }
+   w++;                         /* variable w doesn't appear in this scope */
+}
