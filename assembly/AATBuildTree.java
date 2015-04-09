@@ -12,6 +12,14 @@ public class AATBuildTree {
 	return null;
     }
     
+    /**
+     * Allocate creates an AAT that makes a call to the built-in function allocate, which takes as 
+     * input the size (in bytes) to allocate, and returns a pointer to the beginning of the allocated
+     * block.
+     * 
+     * @param size
+     * @return
+     */
     public AATExpression allocate(AATExpression size) {
 	return null;
     }
@@ -30,36 +38,28 @@ public class AATBuildTree {
     }
     
     public AATStatement emptyStatement() {
-	return null;
-    }
+	return new AATEmpty();
+    }   /* DONE */
   
     public AATStatement callStatement(Vector actuals, Label name) {
-	return null;
-    }
+	return new AATCallStatement(name, actuals);
+    }   /* DONE */
     
     public AATStatement assignmentStatement(AATExpression lhs,
 					    AATExpression rhs) {
-	return null;
-    }
+	return new AATMove(lhs, rhs);
+    }   /* DONE */
     
     public AATStatement sequentialStatement(AATStatement first,
 					    AATStatement second) {
-	return null;
-    }
-    
-    
-    
+	return new AATSequential(first, second);
+    }   /* DONE */
     
     public AATExpression baseVariable(int offset) {
 	return new AATMemory(new AATOperator(new AATRegister(Register.FP()),
 					     new AATConstant(offset),
 					     AATOperator.MINUS)) ;
-    }
-
-
-
-
-
+    }   /* DONE */
 
     public AATExpression arrayVariable(AATExpression base,
 				       AATExpression index,
@@ -73,20 +73,25 @@ public class AATBuildTree {
   
     public AATExpression constantExpression(int value) {
 	return new AATConstant(value);
-    }
+    }   /* DONE */ 
   
     public AATExpression operatorExpression(AATExpression left,
 					    AATExpression right,
 					    int operator) {
-	return null;
-    }
+	return new AATOperator(left, right, operator);
+    }   /* DONE */
   
     public AATExpression callExpression(Vector actuals, Label name) {
-	return null;
-    }
+	return new AATCallExpression(name, actuals);
+    }   /* DONE */
     
     public AATStatement returnStatement(AATExpression value, Label functionend) {
-	return null;
+        //copy value to Result register
+        AATMove move = new AATMove(new AATRegister(Register.Result()), value);
+        //jump to label
+        AATJump jump = new AATJump(functionend);
+        //TODO: Now what? Is it Sequential? or...? Or would we use AATReturn?
+        return sequentialStatement(move, jump);
     }
 }
 
