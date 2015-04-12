@@ -4,38 +4,128 @@ public class AATBuildTree {
   
     public AATStatement functionDefinition(AATStatement body, int framesize, Label start,  
 					   Label end) {
-        AATExpression framepointer;
-        AATExpression stackpointer;
-        AATExpression returnvalue;
+        AATRegister fp = new AATRegister(Register.FP());
+        AATRegister sp = new AATRegister(Register.SP());
+        AATRegister ra = new AATRegister(Register.ReturnAddr());
+        AATExpression wordsize = constantExpression(MachineDependent.WORDSIZE);
         AATLabel startlabeltree = new AATLabel(start);
         AATLabel endlabeltree = new AATLabel(end);
-        //copy value to Result register
-        //move values from fp register to memory
-        AATMove saveframemove = new AATMove(new AATOperator(new AATRegister(Register.FP()), new AATConstant(0 * WORDSIZE), AATOperator.MINUS), framepointer);
-        //move from sp register to memory
-        AATMove savestackmove = new AATMove(new AATOperator(new AATRegister(Register.FP()), new AATConstant(1 * WORDSIZE), AATOperator.MINUS), stackpointer)
-        //move return register to memory
-        new AATMove(new AATOperator(new AATRegister(Register.FP()), new AATConstant(2 * WORDSIZE), AATOperator.MINUS), returnvalue)
-        AATStatement functionDefinitiontree = sequentialStatement(saveframemove,startlabeltree);
-        functionDefinitiontree = sequentialStatement(savestackmove,functionDefinitiontree);
-        functionDefinitiontree = sequentialStatement(savereturnvalue, functionDefinitiontree);
-        //have the fp point to the beginning of the stack
-        //fp is equal to sp
-        AATMove fppointtobegofstackframe = new AATMove(stackpointer,new AATRegister(Register.FP()));
-        functionDefinitiontree = sequentialStatement(fppointtobegofstackframe, functionDefinitiontree);
-        //decrement sp here by subtracting framesize from fp
-        AATMove sppointertoendofframe = new AATMove((new AATOperator(new AATRegister(Register.FP()), new AATConstant(framesize), AATOperator.MINUS)),new AATRegister(Register.SP()));
-        functionDefinitiontree = sequentialStatement(sppointertoendofframe, functionDefinitiontree);
-        functionDefinitiontree = sequentialStatement(endlabeltree,functionDefinitiontree);
-        //restore old values of the Stack Pointer, Frame Pointer, and Return Address registers here
-        AATMove restorestackpointer = new AATMove(stackpointer, new AATRegister(Register.SP());
-        AATMove restorereturnaddress = new AATMove(returnvalue, new AATRegister(Register.ReturnAddr()));
-        AATMove restoreframepointer = new AATMove(framepointer, new AATRegister(Register.FP());
-        functionDefinitiontree = sequentialStatement(restorestackpointer, functionDefinitiontree);
-        functionDefinitiontree = sequentialStatement(restorereturnaddress, functionDefinitiontree);
-        functionDefinitiontree = sequentialStatement(restoreframepointer, functionDefinitiontree);
-        return fun;
-    }
+        
+        AATStatement tree;
+        /** Set up Activation Record */
+        /* 1) put sp, fp, and return addr onto stack. Decrement stack. */
+        //save FP to 0($sp)
+        AATMove savefp = new AATMove(new AATMemory(sp), new AATMemory(fp));
+        //save SP to -4($sp)
+        AATMove savesp = new AATMove(
+                            new AATMemory(
+                                    operatorExpression(
+                                            sp, 
+                                            wordsize,
+                                            AATOperator.MINUS
+                                    )
+                            ),
+                            new AATMemory(sp)
+                         );
+        //save RA to -8($sp)
+        AATMove savera = new AATMove(
+                            new AATMemory(
+                                    operatorExpression(
+                                            sp, 
+                                            operatorExpression(     //2 * WORDSIZE
+                                                    wordsize,
+                                                    constantExpression(2), 
+                                                    AATOperator.MULTIPLY
+                                            ),
+                                            AATOperator.MINUS
+                                    )
+                            ),
+                            new AATMemory(ra)
+                         );  
+        //sp = sp - 12
+        AATMove firstdecrementsp = new AATMove(
+                                        sp,
+                                        operatorExpression(
+                                                sp,
+                                                operatorExpression(
+                                                        wordsize,
+                                                        constantExpression(3),
+                                                        AATOperator.MULTIPLY
+                                                ),
+                                                AATOperator.MINUS
+                                        )
+                                  );
+                                                        
+        /* 2) set fp to sp */  
+        AATMove setfp = new AATMove(fp, sp);
+        
+        /* 3) decrement sp to accomodate the space for local variables and saved registers */
+        //sp = sp - framesize
+        AATMove seconddecrementsp = new AATMove(
+                                        sp,
+                                        operatorExpression(
+                                                sp,
+                                                constantExpression(framesize),
+                                                AATOperator.MINUS
+                                        )
+                                    );
+        
+        /** Clean up activation record */
+        /* 1) Restore Return Address: 4($fp) */
+        AATMove restorera = new AATMove(
+                new AATMemory(ra),
+                new AATMemory(
+                        operatorExpression(
+                                fp, 
+                                wordsize,
+                                AATOperator.PLUS
+                        )
+                )
+             ); 
+        /* 2) Restore Stack Pointer: 8($fp) */
+        AATMove restoresp = new AATMove(
+                new AATMemory(sp),
+                new AATMemory(
+                        operatorExpression(
+                                fp, 
+                                operatorExpression(
+                                        wordsize,
+                                        constantExpression(2),
+                                        AATOperator.MULTIPLY
+                                ),
+                                AATOperator.PLUS
+                        )
+                )
+             ); 
+        /* 3) Restore Frame Pointer: 12($fp) */
+        AATMove restorefp = new AATMove(
+                new AATMemory(fp),
+                new AATMemory(
+                        operatorExpression(
+                                fp, 
+                                operatorExpression(
+                                        wordsize,
+                                        constantExpression(3),
+                                        AATOperator.MULTIPLY
+                                ),
+                                AATOperator.PLUS
+                        )
+                )
+             ); 
+        tree = sequentialStatement(restorefp, new AATReturn());
+        tree = sequentialStatement(restoresp, tree);
+        tree = sequentialStatement(restorera, tree);
+        tree = sequentialStatement(endlabeltree, tree);         /* End label */
+        tree = sequentialStatement(body, tree);                 /* Add body */
+        tree = sequentialStatement(seconddecrementsp, tree);
+        tree = sequentialStatement(setfp, tree);
+        tree = sequentialStatement(firstdecrementsp, tree);
+        tree = sequentialStatement(savera, tree);
+        tree = sequentialStatement(savesp, tree);
+        tree = sequentialStatement(savefp, tree);
+        tree = sequentialStatement(startlabeltree, tree);       /* Start Label */
+        return tree;
+    }   /* DONE */
     
     public AATStatement ifStatement(AATExpression test, AATStatement ifbody, AATStatement elsebody) {
         Label ifendlabel = new Label("ifend");
@@ -61,12 +151,11 @@ public class AATBuildTree {
      * @return
      */
     public AATExpression allocate(AATExpression size) {
-        Label allocatelabel = AbsLabel("allocate");
+        Label allocatelabel = Label.AbsLabel("allocate");
         Vector sizevector = new Vector();
         sizevector.add(size);
         return callExpression(sizevector, allocatelabel);
-        
-    }
+    }   /* DONE */
 
     public AATStatement whileStatement(AATExpression test, AATStatement whilebody) {
 	Label whiletestlabel = new Label("whiletest");
