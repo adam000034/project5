@@ -15,7 +15,7 @@ public class AATBuildTree {
         /** Set up Activation Record */
         /* 1) put sp, fp, and return addr onto stack. Decrement stack. */
         //save FP to 0($sp)
-        AATMove savefp = new AATMove(new AATMemory(sp), new AATMemory(fp));
+        AATMove savefp = new AATMove(new AATMemory(sp), fp);
         //save SP to -4($sp)
         AATMove savesp = new AATMove(
                             new AATMemory(
@@ -25,7 +25,7 @@ public class AATBuildTree {
                                             AATOperator.MINUS
                                     )
                             ),
-                            new AATMemory(sp)
+                            sp
                          );
         //save RA to -8($sp)
         AATMove savera = new AATMove(
@@ -40,7 +40,7 @@ public class AATBuildTree {
                                             AATOperator.MINUS
                                     )
                             ),
-                            new AATMemory(ra)
+                            ra
                          );  
         //sp = sp - 12
         AATMove firstdecrementsp = new AATMove(
@@ -73,7 +73,7 @@ public class AATBuildTree {
         /** Clean up activation record */
         /* 1) Restore Return Address: 4($fp) */
         AATMove restorera = new AATMove(
-                new AATMemory(ra),
+                ra,
                 new AATMemory(
                         operatorExpression(
                                 fp, 
@@ -84,7 +84,7 @@ public class AATBuildTree {
              ); 
         /* 2) Restore Stack Pointer: 8($fp) */
         AATMove restoresp = new AATMove(
-                new AATMemory(sp),
+                sp,
                 new AATMemory(
                         operatorExpression(
                                 fp, 
@@ -99,7 +99,7 @@ public class AATBuildTree {
              ); 
         /* 3) Restore Frame Pointer: 12($fp) */
         AATMove restorefp = new AATMove(
-                new AATMemory(fp),
+                fp,
                 new AATMemory(
                         operatorExpression(
                                 fp, 
