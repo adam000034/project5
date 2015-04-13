@@ -130,7 +130,7 @@ class TestAATBuildTree {
         System.out.println("Testing callExpression");
         System.out.println("----------------------------------------");
         Vector argscallexpress = new Vector();
-        argscallexpress.add(new AATConstant(1));
+        argscallexpress.add(1);
         stmtree = bt.ifStatement(bt.callExpression(argscallexpress,new Label("test")),
                                  bt.assignmentStatement(bt.baseVariable(4), bt.constantExpression(3)),
                                  bt.assignmentStatement(bt.baseVariable(4), bt.constantExpression(8)));
