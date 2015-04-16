@@ -640,7 +640,7 @@ public class SemanticAnalyzer implements ASTVisitor {
 
         for (int i=0; i < fundefinitions.size(); i++)
             fundefinitions.elementAt(i).Accept(this);
-        //return null;
+        return null;
     }
     
     public Object VisitReturnStatement(ASTReturnStatement returnstatement) {
@@ -684,8 +684,8 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
         Type type = ReturnTypeHelper(prototype.type(), prototype.line());
         functionEnv.insert(prototype.name(), new FunctionEntry(type, params));
-        
-        return null;
+        return new TypeClass(type, );
+        //return null;
     }
     
     /**
@@ -783,8 +783,9 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
 
     public Object VisitIntegerLiteral(ASTIntegerLiteral literal) {
+
         return IntegerType.instance();
-    }   /* DONE */
+    }
 
     public Object VisitBaseVariable(ASTBaseVariable base) {
         //System.out.println("VisitBaseVariable() LINE: "+base.line() + " BASE: "+ base.name());
