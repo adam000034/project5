@@ -523,6 +523,12 @@ public class SemanticAnalyzer implements ASTVisitor {
     public Object VisitOperatorExpression(ASTOperatorExpression opexpression) {
         Type lhs = (Type) opexpression.left().Accept(this);
         Type rhs = (Type) opexpression.right().Accept(this);
+        TypeClass left = (TypeClass) opexpr.left().Accept(this);
+        TypeClass right = (TypeClass) opexpr.right().Accept(this);
+        int operator;
+        AATExpression leftv = left.value();
+        AATExpression rightv = right.value();
+    
         // NOTE: "Not" operator is taken care of by VisitUnaryOperatorExpression()
         
         switch (opexpression.operator()) {
@@ -530,37 +536,98 @@ public class SemanticAnalyzer implements ASTVisitor {
                 return IntegerType.instance();
                 
             case ASTOperatorExpression.PLUS:
+                if (lhs != IntegerType.instance() ||
+                    rhs != IntegerType.instance())
+                    CompError.message(opexpr.line(), "+ operator requires integer operands");
+                return new TypeClass(IntegerType.instance(),
+                                     bt.operatorExpression(leftv, rightv,
+                                                           AATOperator.PLUS));
             case ASTOperatorExpression.MINUS:
+                if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
+                    CompError.message(opexpression.line(), "- operator requires integer operands");
+                    //System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                    return new TypeClass(IntegerType.instance(), bt.operatorExpression(leftv, rightv, AATOperator.MINUS));
+                }
             case ASTOperatorExpression.MULTIPLY:
+                if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
+                    CompError.message(opexpression.line(), "* operator requires integer operands");
+                    //System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                    return new TypeClass(IntegerType.instance(), bt.operatorExpression(leftv, rightv, AATOperator.MULTIPLY));
+                }
             case ASTOperatorExpression.DIVIDE:
                 if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
-                    CompError.message(opexpression.line(), "+,-,*,/ arithmetic binary "
-                            + "operators require integer operands");
+                    CompError.message(opexpression.line(), "/ operator requires integer operands");
                     //System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                    return new TypeClass(IntegerType.instance(), bt.operatorExpression(leftv, rightv, AATOperator.DIVIDE));
                 }
-                return IntegerType.instance();
+                //if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
+                    //CompError.message(opexpression.line(), "+,-,*,/ arithmetic binary "
+                      //      + "operators require integer operands");
+                    //System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                //}
+                //return IntegerType.instance();
                 
             case ASTOperatorExpression.GREATER_THAN:
+                if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
+                    CompError.message(opexpression.line(), "> (greater_than) operator requires integer operands");
+                    //System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                    return new TypeClass(IntegerType.instance(), bt.operatorExpression(leftv, rightv, AATOperator.GREATER_THAN));
+                }
             case ASTOperatorExpression.GREATER_THAN_EQUAL:
+                if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
+                    CompError.message(opexpression.line(), ">= (greater_than_equal) operator requires integer operands");
+                    //System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                    return new TypeClass(IntegerType.instance(), bt.operatorExpression(leftv, rightv, AATOperator.GREATER_THAN_EQUAL));
+                }
             case ASTOperatorExpression.LESS_THAN:
+                if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
+                    CompError.message(opexpression.line(), "< (less_than) operator requires integer operands");
+                    //System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                    return new TypeClass(IntegerType.instance(), bt.operatorExpression(leftv, rightv, AATOperator.LESS_THAN));
+                }
             case ASTOperatorExpression.LESS_THAN_EQUAL:
+                if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
+                    CompError.message(opexpression.line(), "<= (less_than_equal) operator requires integer operands");
+                    //System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                    return new TypeClass(IntegerType.instance(), bt.operatorExpression(leftv, rightv, AATOperator.LESS_THAN_EQUAL));
+                }
             case ASTOperatorExpression.EQUAL:
+                if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
+                    CompError.message(opexpression.line(), "= operator requires integer operands");
+                    //System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                    return new TypeClass(IntegerType.instance(), bt.operatorExpression(leftv, rightv, AATOperator.EQUAL));
+                }
             case ASTOperatorExpression.NOT_EQUAL:
                 if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
-                    CompError.message(opexpression.line(), ">, >=, <, <=, != comparative "
-                            + "binary operators require integer operands");
-                    return IntegerType.instance();
+                    CompError.message(opexpression.line(), "!= operator requires integer operands");
+                    //System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                    return new TypeClass(IntegerType.instance(), bt.operatorExpression(leftv, rightv, AATOperator.NOT_EQUAL));
                 }
-                return BooleanType.instance();
+                //if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
+                  //  CompError.message(opexpression.line(), ">, >=, <, <=, != comparative "
+                    //        + "binary operators require integer operands");
+                    //return IntegerType.instance();
+                //}
+                //return BooleanType.instance();
                 
             case ASTOperatorExpression.AND:
-            case ASTOperatorExpression.OR:
-                if (lhs != BooleanType.instance() || rhs != BooleanType.instance()) {
-                    CompError.message(opexpression.line(), "&&, || boolean binary operators "
-                            + "require boolean operands");
-                    return IntegerType.instance();
+                if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
+                    CompError.message(opexpression.line(), "AND operator requires integer operands");
+                    //System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                    return new TypeClass(IntegerType.instance(), bt.operatorExpression(leftv, rightv, AATOperator.AND));
                 }
-                return BooleanType.instance();
+            case ASTOperatorExpression.OR:
+                if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
+                    CompError.message(opexpression.line(), "OR operator requires integer operands";
+                    //System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                    return new TypeClass(IntegerType.instance(), bt.operatorExpression(leftv, rightv, AATOperator.OR));
+                }
+                //if (lhs != BooleanType.instance() || rhs != BooleanType.instance()) {
+                    //CompError.message(opexpression.line(), "&&, || boolean binary operators "
+                    //        + "require boolean operands");
+                  //  return IntegerType.instance();
+                //}
+                //return BooleanType.instance();
         }
                 
         return IntegerType.instance();
@@ -570,7 +637,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         //DONE (Added galles rec for return statement)
         for (int i=0; i < fundefinitions.size(); i++)
             fundefinitions.elementAt(i).Accept(this);
-        return null;
+        //return null;
     }   /* DONE */
     
     public Object VisitReturnStatement(ASTReturnStatement returnstatement) {
@@ -722,9 +789,11 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (baseEntry == null) {
             CompError.message(base.line(), "Variable " + base.name() + " is not defined in this " +
                     "scope");
-            return IntegerType.instance();
+            //return IntegerType.instance();
+            return new TypeClass(IntegerType.instance(), null);
         } else {
-            return baseEntry.type();
+            return new TypeClass(var.type(), bt.baseVariable(var.offset()));
+            //return baseEntry.type();
         }
     }   /* DONE */
 
