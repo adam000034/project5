@@ -49,16 +49,18 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @return Integer instance if error, instance of ArrayType object if not
      */
     public Object VisitNewArrayExpression(ASTNewArrayExpression newarrayexpression) {
-       Type size = (Type) newarrayexpression.elements().Accept(this);
-               
-        if (size != IntegerType.instance()) {
-            CompError.message(newarrayexpression.line(), "Array size must be an integer.");
-            return IntegerType.instance();
-        } else {
-            //type is base type (i.e. int for int[][])
-            return CheckType(newarrayexpression.type(), newarrayexpression.arraydimension(), newarrayexpression.line());
-        }        
-    }
+        TypeClass sizetc = (TypeClass) newarrayexpression.elements().Accept(this);
+        Type size = sizetc.type(); 
+                
+         if (size != IntegerType.instance()) {
+             CompError.message(newarrayexpression.line(), "Array size must be an integer.");
+             return new TypeClass(IntegerType.instance(), null);
+         } else {
+             //type is base type (i.e. int for int[][])
+             Type arrtyp = CheckType(newarrayexpression.type(), newarrayexpression.arraydimension(), newarrayexpression.line());
+             return new TypeClass(arrtyp, bt.allocate(sizetc.value()));
+         }        
+     }  /* DONE */
     
     /**
      * Adds all brackets to base type for array type. 
@@ -102,7 +104,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         } else {
             return entry;
         }
-    }
+    }   /* DONE */
     
     /**
      * Visits each class.
@@ -113,9 +115,8 @@ public class SemanticAnalyzer implements ASTVisitor {
         for (int i = 0; i <classes.size(); i++) {
             classes.elementAt(i).Accept(this);
         }
-
         return null;
-    }
+    }   /* DONE */
     
     /**
      * Checks that types of left-hand side and right-hand side of the Assignment
@@ -124,16 +125,18 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param assignstatement
      */
     public Object VisitAssignmentStatement(ASTAssignmentStatement assignstatement) {
-        Type lhs = (Type) assignstatement.variable().Accept(this);
-        Type rhs = (Type) assignstatement.value().Accept(this);
+        TypeClass lhstc = (TypeClass) assignstatement.variable().Accept(this);
+        TypeClass rhstc = (TypeClass) assignstatement.value().Accept(this);
+        Type lhs = lhstc.type();
+        Type rhs = rhstc.type();
         
         if (lhs != rhs) {
             CompError.message(assignstatement.line(), "Lefthand side and righthand "
                     + "side of an assignment statement must match.");
             //////System.out.println("lhs: " + lhs + " rhs: " + rhs);
         }
-        return null;
-    }
+        return bt.assignmentStatement(lhstc.value(), rhstc.value());
+    }   /* DONE */
 
     
     /**
@@ -143,22 +146,22 @@ public class SemanticAnalyzer implements ASTVisitor {
      */
     public Object VisitArrayVariable(ASTArrayVariable arrayvariable) {
         //////System.out.println("VisitArrayVariable() LINE: "+arrayvariable.line() + " BASE: "+ arrayvariable.base());
-        Type type = (Type) arrayvariable.base().Accept(this);
-        Type typeOfIndex = (Type) arrayvariable.index().Accept(this);
+        TypeClass typetc = (TypeClass) arrayvariable.base().Accept(this);
+        TypeClass typeOfIndextc = (TypeClass) arrayvariable.index().Accept(this);
+        Type type = typetc.type();
+        Type typeOfIndex = typeOfIndextc.type();
         
         if (typeOfIndex != IntegerType.instance()) {
-            CompError.message(arrayvariable.line(), "Index of an array must by of "
+            CompError.message(arrayvariable.line(), "Index of an array must be of "
                     + "type integer.");
-            return IntegerType.instance();
+            return new TypeClass(IntegerType.instance(), null);
         }
         if (! type.getClass().equals(ArrayType.class)) {
             CompError.message(arrayvariable.line(), "Variable is not an array.");
-            return IntegerType.instance();
+            return new TypeClass(IntegerType.instance(), null);
         }
-        return ((ArrayType) type).type();
-
-        //return type;
-    }
+        return new TypeClass(((ArrayType) type).type(), bt.arrayVariable(typetc.value(), typeOfIndextc.value(), MachineDependent.WORDSIZE));
+    }   /* DONE */
     
     /**
      * Returns the instance of BooleanType.
@@ -210,7 +213,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         typeEnv.insert(asclass.name(), classType);
         //functionEnv.insert(asclass.name(), new FunctionEntry(classType, new Vector<Type>()));
         return classType;
-    }
+    }   /* DONE */
     
     /**
      * Checks to make sure type of definition is in typeEnv. if not, error
@@ -232,7 +235,8 @@ public class SemanticAnalyzer implements ASTVisitor {
     public Object VisitClassVariable(ASTClassVariable classvar){
         //System.out.println("VisitClassVariable() LINE: "+classvar.line() + " BASE: "+ classvar.base());
         //ClassType classType = (ClassType) classvar.base().Accept(this);
-        Type type = (Type) classvar.base().Accept(this);
+        TypeClass typetc = (TypeClass) classvar.base().Accept(this);
+        Type type = typetc.type();
 
         /*if (type.getClass().equals(ArrayType.class)) {
             while (type.getClass().equals(ArrayType.class)) {
@@ -241,7 +245,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         }*/
         if (!type.getClass().equals(ClassType.class)) {
             CompError.message(classvar.line(), "Base is not a class type.");
-            return IntegerType.instance();
+            return new TypeClass(IntegerType.instance(), null);
         }
         ClassType classType = (ClassType) type;
         //get class type object
@@ -251,10 +255,9 @@ public class SemanticAnalyzer implements ASTVisitor {
         //System.out.println("  VisitClassVariable(): "+classvar.variable());
         if (varEntry == null) {
             CompError.message(classvar.line(), "Class type does not have variable " + classvar.variable());
-            return IntegerType.instance();
+            return new TypeClass(IntegerType.instance(), null);
         }
-        return varEntry.type();
-        
+        return new TypeClass(varEntry.type(), bt.classVariable(typetc.value(), /*TODO: OFFSET*/));
     }
     
     /**
@@ -280,9 +283,8 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param emptystate
      */
     public Object VisitEmptyStatement(ASTEmptyStatement emptystate) {
-
-        return null;
-    }
+        return bt.emptyStatement();
+    }   /* DONE */
         
     /**
      * Begins new scope on the variable environment, calls Accept() of 
@@ -524,13 +526,13 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitOperatorExpression(ASTOperatorExpression opexpression) {
-        Type lhs = (Type) opexpression.left().Accept(this);
-        Type rhs = (Type) opexpression.right().Accept(this);
         TypeClass left = (TypeClass) opexpression.left().Accept(this);
         TypeClass right = (TypeClass) opexpression.right().Accept(this);
         int operator;
         AATExpression leftv = left.value();
         AATExpression rightv = right.value();
+        Type lhs = left.type();
+        Type rhs = right.type(); 
     
         // NOTE: "Not" operator is taken care of by VisitUnaryOperatorExpression()
         
@@ -684,8 +686,8 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
         Type type = ReturnTypeHelper(prototype.type(), prototype.line());
         functionEnv.insert(prototype.name(), new FunctionEntry(type, params));
-        return new TypeClass(type, );
-        //return null;
+        //return new TypeClass(type, );
+        return null;
     }
     
     /**
@@ -783,9 +785,8 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
 
     public Object VisitIntegerLiteral(ASTIntegerLiteral literal) {
-
-        return IntegerType.instance();
-    }
+        return new TypeClass(IntegerType.instance(), bt.constantExpression(literal.value()));
+    }   /* DONE */
 
     public Object VisitBaseVariable(ASTBaseVariable base) {
         //System.out.println("VisitBaseVariable() LINE: "+base.line() + " BASE: "+ base.name());
@@ -800,8 +801,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             //return baseEntry.type();
 
         }
-        //DONE
-    }
+    }   /* DONE */
 
     public Object VisitIfStatement(ASTIfStatement ifsmt) {
 
