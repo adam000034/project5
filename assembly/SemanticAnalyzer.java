@@ -29,6 +29,8 @@ public class SemanticAnalyzer implements ASTVisitor {
     private TypeEnvironment typeEnv;
     
     private boolean addFormalsToVarEnv;
+    
+    private AATBuildTree bt;
 
     public SemanticAnalyzer() {
         variableEnv = new VariableEnvironment();
@@ -36,6 +38,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         functionEnv.addBuiltinFunctions();
         typeEnv = new TypeEnvironment();
         addFormalsToVarEnv = false;
+        bt = new AATBuildTree();
     }
     
     /**
@@ -523,8 +526,8 @@ public class SemanticAnalyzer implements ASTVisitor {
     public Object VisitOperatorExpression(ASTOperatorExpression opexpression) {
         Type lhs = (Type) opexpression.left().Accept(this);
         Type rhs = (Type) opexpression.right().Accept(this);
-        TypeClass left = (TypeClass) opexpr.left().Accept(this);
-        TypeClass right = (TypeClass) opexpr.right().Accept(this);
+        TypeClass left = (TypeClass) opexpression.left().Accept(this);
+        TypeClass right = (TypeClass) opexpression.right().Accept(this);
         int operator;
         AATExpression leftv = left.value();
         AATExpression rightv = right.value();
@@ -538,7 +541,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             case ASTOperatorExpression.PLUS:
                 if (lhs != IntegerType.instance() ||
                     rhs != IntegerType.instance())
-                    CompError.message(opexpr.line(), "+ operator requires integer operands");
+                    CompError.message(opexpression.line(), "+ operator requires integer operands");
                 return new TypeClass(IntegerType.instance(),
                                      bt.operatorExpression(leftv, rightv,
                                                            AATOperator.PLUS));
@@ -618,7 +621,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                 }
             case ASTOperatorExpression.OR:
                 if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
-                    CompError.message(opexpression.line(), "OR operator requires integer operands";
+                    CompError.message(opexpression.line(), "OR operator requires integer operands");
                     //System.out.println("LHS: " + lhs + " RHS: " + rhs);
                     return new TypeClass(IntegerType.instance(), bt.operatorExpression(leftv, rightv, AATOperator.OR));
                 }
@@ -792,7 +795,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             //return IntegerType.instance();
             return new TypeClass(IntegerType.instance(), null);
         } else {
-            return new TypeClass(var.type(), bt.baseVariable(var.offset()));
+            return new TypeClass(baseEntry.type(), bt.baseVariable(baseEntry.offset()));
             //return baseEntry.type();
         }
     }   /* DONE */
