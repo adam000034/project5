@@ -58,7 +58,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             //type is base type (i.e. int for int[][])
             return CheckType(newarrayexpression.type(), newarrayexpression.arraydimension(), newarrayexpression.line());
         }        
-    }   /* DONE */
+    }
     
     /**
      * Adds all brackets to base type for array type. 
@@ -102,7 +102,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         } else {
             return entry;
         }
-    }   /* DONE */
+    }
     
     /**
      * Visits each class.
@@ -115,7 +115,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
 
         return null;
-    }   /* DONE */
+    }
     
     /**
      * Checks that types of left-hand side and right-hand side of the Assignment
@@ -133,7 +133,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             //////System.out.println("lhs: " + lhs + " rhs: " + rhs);
         }
         return null;
-    }   /* DONE */
+    }
 
     
     /**
@@ -158,7 +158,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         return ((ArrayType) type).type();
 
         //return type;
-    }   /* DONE */
+    }
     
     /**
      * Returns the instance of BooleanType.
@@ -168,7 +168,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      */
     public Object VisitBooleanLiteral(ASTBooleanLiteral boolliteral) {
         return BooleanType.instance();
-    }   /* DONE */
+    }
     
     /**
      * Creates a new variable environment for the class type, goes through each
@@ -210,7 +210,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         typeEnv.insert(asclass.name(), classType);
         //functionEnv.insert(asclass.name(), new FunctionEntry(classType, new Vector<Type>()));
         return classType;
-    }   /* DONE */
+    }
     
     /**
      * Checks to make sure type of definition is in typeEnv. if not, error
@@ -222,7 +222,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     {
         //////System.out.println("VisitInstanceVariableDef()");
         return CheckType(variabledef.type(), variabledef.arraydimension(), variabledef.line());
-    }   /* DONE */
+    }
     
     /**
      * Calls accept on base variable.
@@ -255,7 +255,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
         return varEntry.type();
         
-    }   /* DONE */
+    }
     
     /**
      * Begins new scope on the variable environment, calls Accept() of 
@@ -272,7 +272,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         forstatement.body().Accept(this);
         variableEnv.endScope();
         return null;
-    }   /* DONE */
+    }
     
     /**
      * Returns null. There is nothing to be done for an empty statement.
@@ -282,7 +282,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     public Object VisitEmptyStatement(ASTEmptyStatement emptystate) {
 
         return null;
-    }   /* DONE */
+    }
         
     /**
      * Begins new scope on the variable environment, calls Accept() of 
@@ -296,7 +296,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         dowhile.body().Accept(this);
         variableEnv.endScope();
         return null;
-    }   /* DONE */
+    }
     
     /**
      * Checks that formal is correct by calling helper method CheckType()
@@ -317,7 +317,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             variableEnv.insert(formal.name(), new VariableEntry(type));
         }     
         return type;
-    }   /* DONE */
+    }
     
     /**
      * Visits each formal.
@@ -331,7 +331,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             }
         }
         return null;
-    }   /* DONE */
+    }
     
     /**
      * If prototype already exists, compares prototype and function
@@ -433,7 +433,7 @@ public class SemanticAnalyzer implements ASTVisitor {
 
 
         return null;   
-    }   /* DONE */
+    }
     
     public Object VisitFunctionCallExpression(ASTFunctionCallExpression callexpression) {
         ////System.out.println("VisitFunctionCallExpression() LINE: " + callexpression.line());
@@ -466,7 +466,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             }
         }
         return funcEntry.result();
-    }   /* DONE */
+    }
     
     public Object VisitFunctionCallStatement(ASTFunctionCallStatement statement) {
         ////System.out.println("VisitFunctionCallStatement() LINE: " + statement.line());
@@ -499,7 +499,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             CompError.message(statement.line(), statement.name() + " is not a void function.");
         }
         return null;
-    }   /* DONE */
+    }
     
     public Object VisitInstanceVariableDefs(ASTInstanceVariableDefs variabledefs) {
         //////System.out.println("VisitInstanceVariableDefs()");
@@ -510,7 +510,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             variabledefs.elementAt(i).Accept(this);
         }
         return null;
-    }   /* DONE */
+    }
     
     public Object VisitNewClassExpression(ASTNewClassExpression classexpression) {
         //check to see if the type is valid, in this case the type is a custom class type
@@ -521,7 +521,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             return IntegerType.instance();
         }
         return classType;
-    }   /* DONE */
+    }
     
     public Object VisitOperatorExpression(ASTOperatorExpression opexpression) {
         Type lhs = (Type) opexpression.left().Accept(this);
@@ -637,11 +637,11 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitFunctionDefinitions(ASTFunctionDefinitions fundefinitions) {
-        //DONE (Added galles rec for return statement)
+
         for (int i=0; i < fundefinitions.size(); i++)
             fundefinitions.elementAt(i).Accept(this);
         //return null;
-    }   /* DONE */
+    }
     
     public Object VisitReturnStatement(ASTReturnStatement returnstatement) {
         ////System.out.println("VisitReturnStatement() LINE: " + returnstatement.line());
@@ -662,7 +662,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                               + "does not match with the type given to the function.");
         }
         return null;
-    }   /* DONE */
+    }
     
     /**
      * Adds a description of this function to the function environment
@@ -686,7 +686,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         functionEnv.insert(prototype.name(), new FunctionEntry(type, params));
         
         return null;
-    }   /* DONE */
+    }
     
     /**
      * Checks if return type is an array. Calls CheckType.
@@ -729,7 +729,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                 return BooleanType.instance();
         }
         return IntegerType.instance();
-    }   /* DONE */
+    }
     
     public Object VisitStatements(ASTStatements statements) {
         variableEnv.beginScope();
@@ -738,12 +738,12 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
         variableEnv.endScope();
         return null;
-    }   /* DONE */
+    }
     
     public Object VisitVariableExpression(ASTVariableExpression varexpression) {
         Type variableexpression = (Type) varexpression.variable().Accept(this);
         return variableexpression;
-    }   /* DONE */
+    }
     
     public Object VisitVariableDefStatement(ASTVariableDefStatement varstatement) {
         //Checks Type
@@ -756,13 +756,13 @@ public class SemanticAnalyzer implements ASTVisitor {
             variableEnv.insert(varstatement.name(), new VariableEntry(type));
         }
         return null;
-    }   /* DONE */
+    }
 
     public Object VisitProgram(ASTProgram program) {
         program.classes().Accept(this);
         program.functiondefinitions().Accept(this);
         return null;
-    }   /* DONE */
+    }
     
     public Object VisitWhileStatement(ASTWhileStatement whilestatement) {
         //////System.out.println("While (test/body)");
@@ -778,7 +778,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             variableEnv.endScope();
         }
         return null;
-        /* DONE */
+
 
     }
 
@@ -797,8 +797,10 @@ public class SemanticAnalyzer implements ASTVisitor {
         } else {
             return new TypeClass(baseEntry.type(), bt.baseVariable(baseEntry.offset()));
             //return baseEntry.type();
+
         }
-    }   /* DONE */
+        //DONE
+    }
 
     public Object VisitIfStatement(ASTIfStatement ifsmt) {
 
@@ -819,5 +821,5 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
 
         return null;
-    }   //DONE (do not have to account for () right?
+    }
 }
