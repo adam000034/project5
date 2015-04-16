@@ -2,15 +2,13 @@ import java.util.Vector;
 
 public class AATBuildTree {
   
-    public AATStatement functionDefinition(AATStatement body, int framesize, Label start,  
-					   Label end) {
+    public AATStatement functionDefinition(AATStatement body, int framesize, Label start, Label end) {
         AATRegister fp = new AATRegister(Register.FP());
         AATRegister sp = new AATRegister(Register.SP());
         AATRegister ra = new AATRegister(Register.ReturnAddr());
         AATExpression wordsize = constantExpression(MachineDependent.WORDSIZE);
         AATLabel startlabeltree = new AATLabel(start);
         AATLabel endlabeltree = new AATLabel(end);
-        
         AATStatement tree;
         /** Set up Activation Record */
         /* 1) put sp, fp, and return addr onto stack. Decrement stack. */

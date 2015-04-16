@@ -46,13 +46,11 @@ class TestAATBuildTree {
 									       AATOperator.PLUS)),
 				  bt.assignmentStatement(bt.baseVariable(4),
 							 bt.constantExpression(0)));
-	stmtree.Accept(pt);
-        System.out.println("Assingment:  x := 3 (x local, offset = 4)");
-        System.out.println("----------------------------------------");
-        stmtree = bt.assignmentStatement(bt.baseVariable(4), bt.constantExpression(3));
+        stmtree.Accept(pt);
         System.out.println("================= ");
         System.out.println("Testing Function Definition");
         stmtree = bt.functionDefinition(bt.assignmentStatement(bt.baseVariable(4), bt.constantExpression(3)), 200, new Label("start"), new Label("end"));
+        stmtree.Accept(pt);
         System.out.println("================= ");
         System.out.println("-------------------------------");
         System.out.println("Testing base variable, offset 4 ");
