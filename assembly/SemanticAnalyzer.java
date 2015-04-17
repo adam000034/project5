@@ -58,7 +58,7 @@ public class SemanticAnalyzer implements ASTVisitor {
          } else {
              //type is base type (i.e. int for int[][])
              Type arrtyp = CheckType(newarrayexpression.type(), newarrayexpression.arraydimension(), newarrayexpression.line());
-             return new TypeClass(arrtyp, bt.allocate(sizetc.value()));
+             return new TypeClass(arrtyp, bt.allocate(bt.operatorExpression(sizetc.value(), bt.constantExpression(MachineDependent.WORDSIZE), AATOperator.MULTIPLY))); //TODO: Make sure this is in bytes, not words
          }        
      }  /* DONE */
     
@@ -257,8 +257,8 @@ public class SemanticAnalyzer implements ASTVisitor {
             CompError.message(classvar.line(), "Class type does not have variable " + classvar.variable());
             return new TypeClass(IntegerType.instance(), null);
         }
-        return new TypeClass(varEntry.type(), bt.classVariable(typetc.value(), /*TODO: OFFSET*/));
-    }
+        return new TypeClass(varEntry.type(), bt.classVariable(typetc.value(), varEntry.offset()));
+    }   /* DONE */
     
     /**
      * Begins new scope on the variable environment, calls Accept() of 
@@ -269,13 +269,13 @@ public class SemanticAnalyzer implements ASTVisitor {
      */
     public Object VisitForStatement(ASTForStatement forstatement) {
         variableEnv.beginScope();
-        forstatement.initialize().Accept(this);
-        forstatement.test().Accept(this);
-        forstatement.increment().Accept(this);
-        forstatement.body().Accept(this);
+        AATStatement init = (AATStatement) forstatement.initialize().Accept(this);
+        TypeClass test = (TypeClass) forstatement.test().Accept(this);
+        AATStatement increment = (AATStatement) forstatement.increment().Accept(this);
+        AATStatement body = (AATStatement) forstatement.body().Accept(this);
         variableEnv.endScope();
-        return null;
-    }
+        return bt.forStatement(init, test.value(), increment, body);
+    }   /* DONE */
     
     /**
      * Returns null. There is nothing to be done for an empty statement.
@@ -294,11 +294,11 @@ public class SemanticAnalyzer implements ASTVisitor {
      */
     public Object VisitDoWhileStatement(ASTDoWhileStatement dowhile) {
         variableEnv.beginScope();
-        dowhile.test().Accept(this);
-        dowhile.body().Accept(this);
+        TypeClass test = (TypeClass) dowhile.test().Accept(this);
+        AATStatement body = (AATStatement) dowhile.body().Accept(this);
         variableEnv.endScope();
-        return null;
-    }
+        return bt.dowhileStatement(test.value(), body);
+    }   /* DONE */
     
     /**
      * Checks that formal is correct by calling helper method CheckType()
@@ -768,21 +768,20 @@ public class SemanticAnalyzer implements ASTVisitor {
     
     public Object VisitWhileStatement(ASTWhileStatement whilestatement) {
         //////System.out.println("While (test/body)");
-        Type test = (Type) whilestatement.test().Accept(this);
+        TypeClass test = (TypeClass) whilestatement.test().Accept(this);
 
-        if (test != BooleanType.instance()) {
+        if (test.type() != BooleanType.instance()) {
             CompError.message(whilestatement.line(), "While test must be a boolean");
         }
 
+        AATStatement body = null;
         if (whilestatement.body() != null) {
             variableEnv.beginScope();
-            whilestatement.body().Accept(this);
+            body = (AATStatement) whilestatement.body().Accept(this);
             variableEnv.endScope();
         }
-        return null;
-
-
-    }
+        return bt.whileStatement(test.value(), body);
+    }   /* DONE */
 
     public Object VisitIntegerLiteral(ASTIntegerLiteral literal) {
         return new TypeClass(IntegerType.instance(), bt.constantExpression(literal.value()));
@@ -805,22 +804,23 @@ public class SemanticAnalyzer implements ASTVisitor {
 
     public Object VisitIfStatement(ASTIfStatement ifsmt) {
 
-        Type test = (Type) ifsmt.test().Accept(this);
+        TypeClass test = (TypeClass) ifsmt.test().Accept(this);
 
-        if (test != BooleanType.instance()) {
+        if (test.type() != BooleanType.instance()) {
             CompError.message(ifsmt.line(), "If test must be a boolean");
         }
 
         variableEnv.beginScope();
-        ifsmt.thenstatement().Accept(this);
+        AATStatement thenstmt = (AATStatement) ifsmt.thenstatement().Accept(this);
         variableEnv.endScope();
 
+        AATStatement elsestmt = null;
         if(ifsmt.elsestatement() != null) {
             variableEnv.beginScope();
-            ifsmt.elsestatement().Accept(this);
+            elsestmt = (AATStatement) ifsmt.elsestatement().Accept(this);
             variableEnv.endScope();
         }
 
-        return null;
-    }
+        return bt.ifStatement(test.value(), thenstmt, elsestmt);
+    }   /* DONE */
 }

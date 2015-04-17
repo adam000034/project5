@@ -162,7 +162,9 @@ public class AATBuildTree {
 	AATLabel whilestarttree = new AATLabel(whilestartlabel);
 	
 	AATStatement tree = sequentialStatement(whiletesttree, new AATConditionalJump(test, whilestartlabel));
-	tree = sequentialStatement(whilebody, tree);
+	if (whilebody!= null) {
+	    tree = sequentialStatement(whilebody, tree);
+	}
 	tree = sequentialStatement(whilestarttree, tree);
 	return sequentialStatement(new AATJump(whiletestlabel), tree);
     }   /* DONE */
