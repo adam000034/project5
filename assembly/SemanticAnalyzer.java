@@ -121,7 +121,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             classes.elementAt(i).Accept(this);
         }
         return null;
-    }   //TODO
+    }   /* DONE */
     
     /**
      * Checks that types of left-hand side and right-hand side of the Assignment
@@ -224,7 +224,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         typeEnv.insert(asclass.name(), classType);
         //functionEnv.insert(asclass.name(), new FunctionEntry(classType, new Vector<Type>()));
         return classType;
-    }   //TODO
+    }   /* DONE */
     
     /**
      * Checks to make sure type of definition is in typeEnv. if not, error
@@ -557,7 +557,6 @@ public class SemanticAnalyzer implements ASTVisitor {
     public Object VisitOperatorExpression(ASTOperatorExpression opexpression) {
         TypeClass left = (TypeClass) opexpression.left().Accept(this);
         TypeClass right = (TypeClass) opexpression.right().Accept(this);
-        int operator;
         AATExpression leftv = left.value();
         AATExpression rightv = right.value();
         Type lhs = left.type();
@@ -710,9 +709,8 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
         Type type = ReturnTypeHelper(prototype.type(), prototype.line());
         functionEnv.insert(prototype.name(), new FunctionEntry(type, params, new Label(prototype.name()), new Label(prototype.name())));
-        //return new TypeClass(type, );
         return null;
-    }   //TODO
+    }   /* DONE */
     
     /**
      * Checks if return type is an array. Calls CheckType.
@@ -753,10 +751,10 @@ public class SemanticAnalyzer implements ASTVisitor {
                             + "a boolean operand.");
                     return new TypeClass(IntegerType.instance(), null);
                 }
-                return new TypeClass(BooleanType.instance(), /*TODO: fix this*/operandtc.value());
+                return new TypeClass(BooleanType.instance(), bt.operatorExpression(operandtc.value(), null, AATOperator.NOT));  //TODO: are we correct in using operator expression?
         }
         return new TypeClass(IntegerType.instance(), null);
-    }   //TODO
+    }   /* DONE */
     
     public Object VisitStatements(ASTStatements statements) {
         AATStatement tree = null;
@@ -792,9 +790,8 @@ public class SemanticAnalyzer implements ASTVisitor {
 
     public Object VisitProgram(ASTProgram program) {
         program.classes().Accept(this);
-        program.functiondefinitions().Accept(this);
-        return null;
-    }   //TODO
+        return program.functiondefinitions().Accept(this);
+    }   /* DONE */
     
     public Object VisitWhileStatement(ASTWhileStatement whilestatement) {
         //////System.out.println("While (test/body)");
