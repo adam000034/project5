@@ -30,6 +30,8 @@ public class SemanticAnalyzer implements ASTVisitor {
     
     private boolean addFormalsToVarEnv;
     
+    private int offset;    
+    private int formalOffset;   //for formals: negative
     private AATBuildTree bt;
 
     public SemanticAnalyzer() {
@@ -39,6 +41,8 @@ public class SemanticAnalyzer implements ASTVisitor {
         typeEnv = new TypeEnvironment();
         addFormalsToVarEnv = false;
         bt = new AATBuildTree();
+        offset = 0;
+        formalOffset = (-1 * MachineDependent.WORDSIZE);
     }
     
     /**
@@ -170,8 +174,12 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @return BooleanType's instance
      */
     public Object VisitBooleanLiteral(ASTBooleanLiteral boolliteral) {
-        return BooleanType.instance();
-    }
+        if (boolliteral.value()) {
+            return new TypeClass(BooleanType.instance(), bt.constantExpression(1));
+        } else {
+            return new TypeClass(BooleanType.instance(), bt.constantExpression(0));
+        }
+    }   /* DONE */
     
     /**
      * Creates a new variable environment for the class type, goes through each
@@ -182,6 +190,8 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @return IntegerType instance if error, else ClassType
      */
     public Object VisitClass(ASTClass asclass) {
+        ResetOffsets();
+        
         if (typeEnv.find(asclass.name()) != null) {
             CompError.message(asclass.line(), "Cannot have classes with the same name.");
             return IntegerType.instance();
@@ -205,7 +215,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                             + "of the same name within the same class.");
                     return IntegerType.instance();
                 }
-                variables.insert(vardef.name(), new VariableEntry(type));
+                variables.insert(vardef.name(), new VariableEntry(type, IncrementOffset()));
             }
         }
         ClassType classType = new ClassType(variables);
@@ -225,7 +235,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     {
         //////System.out.println("VisitInstanceVariableDef()");
         return CheckType(variabledef.type(), variabledef.arraydimension(), variabledef.line());
-    }
+    }   /* DONE */
     
     /**
      * Calls accept on base variable.
@@ -316,10 +326,10 @@ public class SemanticAnalyzer implements ASTVisitor {
                         + "of the same name for the same function.");
                 return IntegerType.instance();
             }
-            variableEnv.insert(formal.name(), new VariableEntry(type));
+            variableEnv.insert(formal.name(), new VariableEntry(type, DecrementFormalOffset()));
         }     
         return type;
-    }
+    }   /* DONE */
     
     /**
      * Visits each formal.
@@ -333,7 +343,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             }
         }
         return null;
-    }
+    }   /* DONE */
     
     /**
      * If prototype already exists, compares prototype and function
@@ -355,6 +365,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      */
     public Object VisitFunction(ASTFunction function) {
         //////System.out.println("VisitFunction()");
+        ResetOffsets();
         boolean hasPrototype;
 
         //Analyze formal parameters & return type
@@ -429,13 +440,13 @@ public class SemanticAnalyzer implements ASTVisitor {
         //assumming that there will be no more than one "return" at a time
         variableEnv.insert("return", varentry);
         //Analyze the body of the function, using modified variable environment
-        function.body().Accept(this);
+        AATStatement body = (AATStatement) function.body().Accept(this);
         //End current scope in variable environment
         variableEnv.endScope();
 
-
-        return null;   
-    }
+        return bt.functionDefinition(body, offset, new Label(function.name() + "start"), new Label(function.name() + "end"));
+        //TODO: check body and framesize (offset)
+    }   /* DONE */
     
     public Object VisitFunctionCallExpression(ASTFunctionCallExpression callexpression) {
         ////System.out.println("VisitFunctionCallExpression() LINE: " + callexpression.line());
@@ -444,31 +455,35 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (funcEntry == null) {
             CompError.message(callexpression.line(), "Function " + callexpression.name() + " is not defined in this " +
                               "scope");
-            return IntegerType.instance();
+            return new TypeClass(IntegerType.instance(), null);
         }
         if (callexpression.size() < funcEntry.formals().size()) {
             CompError.message(callexpression.line(), "Function call has too few actual parameters.");
             
-            return IntegerType.instance();
+            return new TypeClass(IntegerType.instance(), null);
         }
         if (callexpression.size() > funcEntry.formals().size()) {
             CompError.message(callexpression.line(), "Function call has too many actual parameters.");
             
-            return IntegerType.instance();
+            return new TypeClass(IntegerType.instance(), null);
         }
         
+        TypeClass argtc;
         Type argType;
+        Vector actuals = new Vector();
         for (int i=0; i<callexpression.size(); i++) {
             //check to see if the args used have the types they are supposed to have
-            argType = (Type) callexpression.elementAt(i).Accept(this);
+            argtc = (TypeClass) callexpression.elementAt(i).Accept(this);
+            argType = argtc.type();
+            actuals.insertElementAt(argtc.value(), i);
             if (funcEntry.formals().elementAt(i) != argType) {
                 CompError.message(callexpression.line(), "Argument " + i + " for function " + callexpression.name() + " does not match"
                         + " its corresponding function parameter's type.");
-                return IntegerType.instance();
+                return new TypeClass(IntegerType.instance(), null);
             }
         }
-        return funcEntry.result();
-    }
+        return new TypeClass(funcEntry.result(), bt.callExpression(actuals, new Label(callexpression.name())));
+    }   /* DONE */
     
     public Object VisitFunctionCallStatement(ASTFunctionCallStatement statement) {
         ////System.out.println("VisitFunctionCallStatement() LINE: " + statement.line());
@@ -755,7 +770,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             CompError.message(varstatement.line(), "Duplicate local variable " + 
                     varstatement.name() + ". ");
         } else {
-            variableEnv.insert(varstatement.name(), new VariableEntry(type));
+            variableEnv.insert(varstatement.name(), new VariableEntry(type, IncrementOffset()));
         }
         return null;
     }
@@ -822,5 +837,30 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
 
         return bt.ifStatement(test.value(), thenstmt, elsestmt);
+    }   /* DONE */
+    
+    /**
+     * Returns current offset and then increments the offset.
+     * @return current offset
+     */
+    public int IncrementOffset() {
+        int oldOffset = offset;
+        offset += MachineDependent.WORDSIZE;
+        return oldOffset;
+    }   /* DONE */
+    
+    /**
+     * Returns current formal offset and then decrements the formal offset.
+     * @return current formal offset
+     */
+    public int DecrementFormalOffset() {
+        int oldOffset = formalOffset;
+        formalOffset -= MachineDependent.WORDSIZE;
+        return oldOffset;
+    }   /* DONE */
+    
+    public void ResetOffsets() {
+        formalOffset = (-1 * MachineDependent.WORDSIZE);
+        offset = 0;
     }   /* DONE */
 }
