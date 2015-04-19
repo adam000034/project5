@@ -120,7 +120,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             classes.elementAt(i).Accept(this);
         }
         return null;
-    }   /* DONE */
+    }
     
     /**
      * Checks that types of left-hand side and right-hand side of the Assignment
@@ -223,7 +223,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         typeEnv.insert(asclass.name(), classType);
         //functionEnv.insert(asclass.name(), new FunctionEntry(classType, new Vector<Type>()));
         return classType;
-    }   /* DONE */
+    }
     
     /**
      * Checks to make sure type of definition is in typeEnv. if not, error
@@ -502,21 +502,27 @@ public class SemanticAnalyzer implements ASTVisitor {
             CompError.message(statement.line(), "Function call has too many actual parameters.");
             return null;
         }
-        Type argType;
-        for (int i=0; i<statement.size(); i++) {           
-            //check to see if the args used have the types they are supposed to have
-            argType = (Type) statement.elementAt(i).Accept(this);
-            if (funcEntry.formals().elementAt(i) != argType) {
-                CompError.message(statement.line(), "Argument " + i + " for function " + statement.name() + " does not match"
-                        + " its corresponding function parameter's type.");
-            }
-        }
         //Check Return Type - if not void, don't allow
         if (funcEntry.result() != VoidType.instance()) {
             CompError.message(statement.line(), statement.name() + " is not a void function.");
+            return null;
         }
-        return null;
-    }
+        TypeClass argtc;
+        Type argType;
+        Vector actuals = new Vector();        
+        for (int i=0; i<statement.size(); i++) {           
+            argtc = (TypeClass) statement.elementAt(i).Accept(this);
+            argType = argtc.type();
+            actuals.insertElementAt(argtc.value(), i);
+            //check to see if the args used have the types they are supposed to have
+            if (funcEntry.formals().elementAt(i) != argType) {
+                CompError.message(statement.line(), "Argument " + i + " for function " + statement.name() + " does not match"
+                        + " its corresponding function parameter's type.");
+                return null;
+            }
+        }
+        return bt.callStatement(actuals, new Label(statement.name()));
+    }   /* DONE */
     
     public Object VisitInstanceVariableDefs(ASTInstanceVariableDefs variabledefs) {
         //////System.out.println("VisitInstanceVariableDefs()");
@@ -527,7 +533,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             variabledefs.elementAt(i).Accept(this);
         }
         return null;
-    }
+    }   /* DONE */
     
     public Object VisitNewClassExpression(ASTNewClassExpression classexpression) {
         //check to see if the type is valid, in this case the type is a custom class type
@@ -749,13 +755,18 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitStatements(ASTStatements statements) {
+        AATStatement tree = null;
         variableEnv.beginScope();
-        for (int i = 0; i<statements.size(); i++) {
-            statements.elementAt(i).Accept(this);
+        for (int i = statements.size()-1; i>=0; i--) {
+            if (i == statements.size()-1) {
+                tree = (AATStatement) statements.elementAt(i).Accept(this);
+            } else {
+                tree = bt.sequentialStatement((AATStatement) statements.elementAt(i).Accept(this), tree);
+            }
         }
         variableEnv.endScope();
-        return null;
-    }
+        return tree;
+    }   /* DONE */
     
     public Object VisitVariableExpression(ASTVariableExpression varexpression) {
         Type variableexpression = (Type) varexpression.variable().Accept(this);
