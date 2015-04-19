@@ -650,15 +650,20 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitFunctionDefinitions(ASTFunctionDefinitions fundefinitions) {
-        AATStatement tree = null;
-        for (int i=fundefinitions.size()-1; i >= 0; i--) {
-            if (i == fundefinitions.size()-1) {
-                tree = (AATStatement) fundefinitions.elementAt(i).Accept(this);
+        AATSequential tree = null;
+        for (int i=0; i < fundefinitions.size(); i++) {
+            if (i == 0){
+                tree = (AATSequential) bt.sequentialStatement((AATStatement) fundefinitions.elementAt(i).Accept(this), null);
+            } else if (i == fundefinitions.size()-1) {
+                tree.setright((AATStatement) fundefinitions.elementAt(i).Accept(this));
             } else {
-                tree = bt.sequentialStatement((AATStatement) fundefinitions.elementAt(i).Accept(this), tree);
+                tree.setright((AATSequential) bt.sequentialStatement((AATStatement) fundefinitions.elementAt(i).Accept(this), null));
+                tree = (AATSequential) tree.right();
             }
         }
         return tree;
+        /*        for (int i=0; i < fundefinitions.size(); i++)
+            fundefinitions.elementAt(i).Accept(this);*/
     }   /* DONE */
     
     public Object VisitReturnStatement(ASTReturnStatement returnstatement) {
@@ -697,6 +702,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param prototype
      */
     public Object VisitPrototype(ASTPrototype prototype) {
+        ResetOffsets(); //Should reset because if there is prototype, function will not re-add formals to environ. Therefore, offsets must be correct)
         //////System.out.println("VisitPrototype()");
         //Add prototype to function environment
         Vector<Type> params = new Vector<Type>();
@@ -757,13 +763,16 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitStatements(ASTStatements statements) {
-        AATStatement tree = null;
+        AATSequential tree = null;
         variableEnv.beginScope();
-        for (int i = statements.size()-1; i>=0; i--) {
-            if (i == statements.size()-1) {
-                tree = (AATStatement) statements.elementAt(i).Accept(this);
+        for (int i = 0; i<statements.size(); i++) {
+            if (i == 0){
+                tree = (AATSequential) bt.sequentialStatement((AATStatement) statements.elementAt(i).Accept(this), null);
+            } else if (i == statements.size()-1) {
+                tree.setright((AATStatement) statements.elementAt(i).Accept(this));
             } else {
-                tree = bt.sequentialStatement((AATStatement) statements.elementAt(i).Accept(this), tree);
+                tree.setright((AATSequential) bt.sequentialStatement((AATStatement) statements.elementAt(i).Accept(this), null));
+                tree = (AATSequential) tree.right();
             }
         }
         variableEnv.endScope();
@@ -771,7 +780,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitVariableExpression(ASTVariableExpression varexpression) {
-        Type variableexpression = (Type) varexpression.variable().Accept(this);
+        TypeClass variableexpression = (TypeClass) varexpression.variable().Accept(this);
         return variableexpression;
     }
     
@@ -783,6 +792,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             CompError.message(varstatement.line(), "Duplicate local variable " + 
                     varstatement.name() + ". ");
         } else {
+            System.out.println("Declaring " + varstatement.name());
             variableEnv.insert(varstatement.name(), new VariableEntry(type, IncrementOffset()));
         }
         return null;
