@@ -1,0 +1,408 @@
+Parsing Successful
+=================
+Printing AST ...
+=================
+Prototype: int mod
+   int x
+   int y
+Prototype: int GCD
+   int x
+   int y
+Function Definition: main Return type: int
+   No formal parameters
+   {
+      int n1
+      int n2
+      int result
+      Assign (lhs/rhs)
+         Base Variable n1
+         Function Call: Read
+      Assign (lhs/rhs)
+         Base Variable n2
+         Function Call: Read
+      Assign (lhs/rhs)
+         Base Variable result
+         Function Call: GCD
+            Base Variable n1
+            Base Variable n2
+      Function Call: Print
+         Base Variable result
+      Function Call: Println
+   }
+Function Definition: mod Return type: int
+   Formals:
+      int x
+      int y
+   {
+      While (test/body)
+         >=
+            Base Variable x
+            Base Variable y
+         Assign (lhs/rhs)
+            Base Variable x
+            -
+               Base Variable x
+               Base Variable y
+      Return
+         Base Variable x
+   }
+Function Definition: GCD Return type: int
+   Formals:
+      int x
+      int y
+   {
+      int tmp
+      If (test/if body/else body)
+         <
+            Base Variable x
+            Base Variable y
+         {
+            Assign (lhs/rhs)
+               Base Variable tmp
+               Base Variable x
+            Assign (lhs/rhs)
+               Base Variable x
+               Base Variable y
+            Assign (lhs/rhs)
+               Base Variable y
+               Base Variable tmp
+         }
+         No else statement
+      If (test/if body/else body)
+         ==
+            Base Variable y
+            0
+         Return
+            Base Variable x
+         Return
+            Function Call: GCD
+               Base Variable y
+               Function Call: mod
+                  Base Variable x
+                  Base Variable y
+   }
+=================
+Printing AAT ...
+=================
+Label: main1
+Move
+   Memory
+      Register: $sp
+   Register: $fp
+Move
+   Memory
+      -
+         Register: $sp
+         4
+   Register: $sp
+Move
+   Memory
+      -
+         Register: $sp
+         *
+            4
+            2
+   Register: $ra
+Move
+   Register: $sp
+   -
+      Register: $sp
+      *
+         4
+         3
+Move
+   Register: $fp
+   Register: $sp
+Move
+   Register: $sp
+   -
+      Register: $sp
+      12
+Move
+   Memory
+      -
+         Register: $fp
+         0
+   Call Expression: Read
+Move
+   Memory
+      -
+         Register: $fp
+         4
+   Call Expression: Read
+Move
+   Memory
+      -
+         Register: $fp
+         8
+   Call Expression: GCD1
+      Memory
+         -
+            Register: $fp
+            0
+      Memory
+         -
+            Register: $fp
+            4
+Call Statement: Print
+   Memory
+      -
+         Register: $fp
+         8
+Call Statement: Println
+Label: main2
+Move
+   Register: $ra
+   Memory
+      +
+         Register: $fp
+         4
+Move
+   Register: $sp
+   Memory
+      +
+         Register: $fp
+         *
+            4
+            2
+Move
+   Register: $fp
+   Memory
+      +
+         Register: $fp
+         *
+            4
+            3
+Return
+Label: mod1
+Move
+   Memory
+      Register: $sp
+   Register: $fp
+Move
+   Memory
+      -
+         Register: $sp
+         4
+   Register: $sp
+Move
+   Memory
+      -
+         Register: $sp
+         *
+            4
+            2
+   Register: $ra
+Move
+   Register: $sp
+   -
+      Register: $sp
+      *
+         4
+         3
+Move
+   Register: $fp
+   Register: $sp
+Move
+   Register: $sp
+   -
+      Register: $sp
+      0
+Jump: whiletest2
+Label: whilestart2
+Move
+   Memory
+      -
+         Register: $fp
+         -4
+   -
+      Memory
+         -
+            Register: $fp
+            -4
+      Memory
+         -
+            Register: $fp
+            -8
+Label: whiletest2
+Conditional Jump: whilestart2
+   >=
+      Memory
+         -
+            Register: $fp
+            -4
+      Memory
+         -
+            Register: $fp
+            -8
+Move
+   Register: $v0
+   Memory
+      -
+         Register: $fp
+         -4
+Jump: mod2
+Label: mod2
+Move
+   Register: $ra
+   Memory
+      +
+         Register: $fp
+         4
+Move
+   Register: $sp
+   Memory
+      +
+         Register: $fp
+         *
+            4
+            2
+Move
+   Register: $fp
+   Memory
+      +
+         Register: $fp
+         *
+            4
+            3
+Return
+Label: GCD1
+Move
+   Memory
+      Register: $sp
+   Register: $fp
+Move
+   Memory
+      -
+         Register: $sp
+         4
+   Register: $sp
+Move
+   Memory
+      -
+         Register: $sp
+         *
+            4
+            2
+   Register: $ra
+Move
+   Register: $sp
+   -
+      Register: $sp
+      *
+         4
+         3
+Move
+   Register: $fp
+   Register: $sp
+Move
+   Register: $sp
+   -
+      Register: $sp
+      4
+Conditional Jump: iftrue4
+   <
+      Memory
+         -
+            Register: $fp
+            -4
+      Memory
+         -
+            Register: $fp
+            -8
+Jump: ifend4
+Label: iftrue4
+Move
+   Memory
+      -
+         Register: $fp
+         0
+   Memory
+      -
+         Register: $fp
+         -4
+Move
+   Memory
+      -
+         Register: $fp
+         -4
+   Memory
+      -
+         Register: $fp
+         -8
+Move
+   Memory
+      -
+         Register: $fp
+         -8
+   Memory
+      -
+         Register: $fp
+         0
+Label: ifend4
+Conditional Jump: iftrue6
+   ==
+      Memory
+         -
+            Register: $fp
+            -8
+      0
+Move
+   Register: $v0
+   Call Expression: GCD1
+      Memory
+         -
+            Register: $fp
+            -8
+      Call Expression: mod1
+         Memory
+            -
+               Register: $fp
+               -4
+         Memory
+            -
+               Register: $fp
+               -8
+Jump: GCD2
+Jump: ifend6
+Label: iftrue6
+Move
+   Register: $v0
+   Memory
+      -
+         Register: $fp
+         -4
+Jump: GCD2
+Label: ifend6
+Label: GCD2
+Move
+   Register: $ra
+   Memory
+      +
+         Register: $fp
+         4
+Move
+   Register: $sp
+   Memory
+      +
+         Register: $fp
+         *
+            4
+            2
+Move
+   Register: $fp
+   Memory
+      +
+         Register: $fp
+         *
+            4
+            3
+Return
+========================
+Starting Interpreter ...
+========================
+I/O Exception:java.lang.NumberFormatException: For input string: "3 4"
+Error occured -- system aborted
+========================
+Interpreter Done!
+========================

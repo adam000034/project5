@@ -7,107 +7,122 @@ public class AATBuildTree {
         AATRegister sp = new AATRegister(Register.SP());
         AATRegister ra = new AATRegister(Register.ReturnAddr());
         AATExpression wordsize = constantExpression(MachineDependent.WORDSIZE);
+        AATExpression framesizetree = constantExpression(framesize);
         AATLabel startlabeltree = new AATLabel(start);
         AATLabel endlabeltree = new AATLabel(end);
         AATStatement tree;
         /** Set up Activation Record */
         /* 1) put sp, fp, and return addr onto stack. Decrement stack. */
-        //save FP to 0($sp)
-        AATMove savefp = new AATMove(new AATMemory(sp), fp);
-        //save SP to -4($sp)
+        //save FP to -(framesize)($sp)
+        AATMove savefp = new AATMove(                            
+                                new AATMemory(
+                                operatorExpression(
+                                        sp, 
+                                        framesizetree,
+                                        AATOperator.MINUS
+                                )
+                            ),
+                            fp
+                        );
+        //save SP to -(framesize + 4)($sp)
         AATMove savesp = new AATMove(
                             new AATMemory(
                                     operatorExpression(
                                             sp, 
-                                            wordsize,
+                                            operatorExpression(
+                                                    framesizetree,
+                                                    wordsize,
+                                                    AATOperator.PLUS),
                                             AATOperator.MINUS
                                     )
                             ),
                             sp
                          );
-        //save RA to -8($sp)
+        //save RA to -(framesize + 8)($sp)
         AATMove savera = new AATMove(
                             new AATMemory(
                                     operatorExpression(
-                                            sp, 
-                                            operatorExpression(     //2 * WORDSIZE
-                                                    wordsize,
-                                                    constantExpression(2), 
-                                                    AATOperator.MULTIPLY
+                                            sp,
+                                            operatorExpression( //framesize + 8
+                                                    framesizetree,
+                                                    operatorExpression(     //2 * WORDSIZE = 8
+                                                            wordsize,
+                                                            constantExpression(2), 
+                                                            AATOperator.MULTIPLY
+                                                    ),
+                                                    AATOperator.PLUS
                                             ),
                                             AATOperator.MINUS
                                     )
                             ),
                             ra
                          );  
-        //sp = sp - 12
-        AATMove firstdecrementsp = new AATMove(
-                                        sp,
-                                        operatorExpression(
-                                                sp,
-                                                operatorExpression(
-                                                        wordsize,
-                                                        constantExpression(3),
-                                                        AATOperator.MULTIPLY
-                                                ),
-                                                AATOperator.MINUS
-                                        )
-                                  );
-                                                        
+                                             
         /* 2) set fp to sp */  
         AATMove setfp = new AATMove(fp, sp);
         
-        /* 3) decrement sp to accomodate the space for local variables and saved registers */
-        //sp = sp - framesize
-        AATMove seconddecrementsp = new AATMove(
+        /* 3) decrement sp to accommodate the space for local variables and saved registers */
+        //sp = sp - framesize - saved registers
+        AATMove decrementsp = new AATMove(
                                         sp,
                                         operatorExpression(
                                                 sp,
-                                                constantExpression(framesize),
+                                                operatorExpression(     //framesize + 12
+                                                        framesizetree,
+                                                        operatorExpression(
+                                                                wordsize,
+                                                                constantExpression(3),
+                                                                AATOperator.MULTIPLY
+                                                        ),
+                                                        AATOperator.PLUS
+                                                ),
                                                 AATOperator.MINUS
                                         )
                                     );
         
         /** Clean up activation record */
-        /* 1) Restore Return Address: 4($fp) */
+        /* 1) Restore Return Address: -(framesize + 8)($fp) */
         AATMove restorera = new AATMove(
                 ra,
                 new AATMemory(
                         operatorExpression(
-                                fp, 
-                                wordsize,
-                                AATOperator.PLUS
+                                fp,
+                                operatorExpression( //framesize + 8
+                                        framesizetree,
+                                        operatorExpression(     //2 * WORDSIZE = 8
+                                                wordsize,
+                                                constantExpression(2), 
+                                                AATOperator.MULTIPLY
+                                        ),
+                                        AATOperator.PLUS
+                                ),
+                                AATOperator.MINUS
                         )
                 )
              ); 
-        /* 2) Restore Stack Pointer: 8($fp) */
+        /* 2) Restore Stack Pointer: -(framesize + 4)($fp) */
         AATMove restoresp = new AATMove(
                 sp,
                 new AATMemory(
                         operatorExpression(
                                 fp, 
                                 operatorExpression(
+                                        framesizetree,
                                         wordsize,
-                                        constantExpression(2),
-                                        AATOperator.MULTIPLY
-                                ),
-                                AATOperator.PLUS
+                                        AATOperator.PLUS),
+                                AATOperator.MINUS
                         )
                 )
              ); 
-        /* 3) Restore Frame Pointer: 12($fp) */
+        /* 3) Restore Frame Pointer: -(framesize)($fp) */
         AATMove restorefp = new AATMove(
                 fp,
                 new AATMemory(
-                        operatorExpression(
-                                fp, 
-                                operatorExpression(
-                                        wordsize,
-                                        constantExpression(3),
-                                        AATOperator.MULTIPLY
-                                ),
-                                AATOperator.PLUS
-                        )
+                    operatorExpression(
+                            fp, 
+                            framesizetree,
+                            AATOperator.MINUS
+                    )
                 )
              ); 
         tree = sequentialStatement(restorefp, new AATReturn());
@@ -116,9 +131,8 @@ public class AATBuildTree {
         tree = sequentialStatement(endlabeltree, tree);         /* End label */
         if (body != null)
             tree = sequentialStatement(body, tree);                 /* Add body */
-        tree = sequentialStatement(seconddecrementsp, tree);
+        tree = sequentialStatement(decrementsp, tree);
         tree = sequentialStatement(setfp, tree);
-        tree = sequentialStatement(firstdecrementsp, tree);
         tree = sequentialStatement(savera, tree);
         tree = sequentialStatement(savesp, tree);
         tree = sequentialStatement(savefp, tree);

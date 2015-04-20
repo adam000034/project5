@@ -87,7 +87,9 @@ public class AATPrintTree implements  AATVisitor {
 	Print(AATOperator.names[oper.operator()]);
 	indentlevel++;
 	oper.left().Accept(this);
-	oper.right().Accept(this);
+	if (oper.operator() != AATOperator.NOT) {
+	    oper.right().Accept(this);
+	}
 	indentlevel--;
 	return null;
     }

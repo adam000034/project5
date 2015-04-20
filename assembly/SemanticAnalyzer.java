@@ -547,11 +547,8 @@ public class SemanticAnalyzer implements ASTVisitor {
                     "scope");
             return new TypeClass(IntegerType.instance(), null);
         }
-        return new TypeClass(classType, bt.allocate(
-                bt.operatorExpression(
-                        bt.constantExpression(classType.variables().size()), 
-                        bt.constantExpression(MachineDependent.WORDSIZE), 
-                        AATOperator.MULTIPLY)));
+        int size = classType.variables().size() * MachineDependent.WORDSIZE;
+        return new TypeClass(classType, bt.allocate(bt.constantExpression(size)));
     }   /* DONE */
     
     public Object VisitOperatorExpression(ASTOperatorExpression opexpression) {
@@ -802,7 +799,6 @@ public class SemanticAnalyzer implements ASTVisitor {
             }
         }
         variableEnv.endScope();
-        System.out.println(topoftree.left());
         return topoftree;
     }   /* DONE */
     
