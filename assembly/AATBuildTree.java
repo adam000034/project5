@@ -114,7 +114,8 @@ public class AATBuildTree {
         tree = sequentialStatement(restoresp, tree);
         tree = sequentialStatement(restorera, tree);
         tree = sequentialStatement(endlabeltree, tree);         /* End label */
-        tree = sequentialStatement(body, tree);                 /* Add body */
+        if (body != null)
+            tree = sequentialStatement(body, tree);                 /* Add body */
         tree = sequentialStatement(seconddecrementsp, tree);
         tree = sequentialStatement(setfp, tree);
         tree = sequentialStatement(firstdecrementsp, tree);
