@@ -651,13 +651,21 @@ public class SemanticAnalyzer implements ASTVisitor {
     
     public Object VisitFunctionDefinitions(ASTFunctionDefinitions fundefinitions) {
         AATSequential tree = null;
+        AATSequential topoftree = null;
+        AATStatement fun = null;
+        boolean startedtree = false;        
         for (int i=0; i < fundefinitions.size(); i++) {
-            if (i == 0 && i == fundefinitions.size()-1){    //only one statement
+            fun = (AATStatement) fundefinitions.elementAt(i).Accept(this);
+            if (fun == null) {
+                continue;
+            } else if (!startedtree && i == fundefinitions.size()-1){    //only one statement
                 AATStatement singletree = (AATStatement) fundefinitions.elementAt(i).Accept(this);
                 variableEnv.endScope();
                 return singletree;
-            } else if (i == 0 && i != fundefinitions.size()-1){
+            } else if (!startedtree && i != fundefinitions.size()-1){
                 tree = (AATSequential) bt.sequentialStatement((AATStatement) fundefinitions.elementAt(i).Accept(this), null);
+                topoftree = tree;
+                startedtree = true;
             } else if (i == fundefinitions.size()-1) {
                 tree.setright((AATStatement) fundefinitions.elementAt(i).Accept(this));
             } else {
@@ -665,7 +673,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                 tree = (AATSequential) tree.right();
             }
         }
-        return tree;
+        return topoftree;
         /*        for (int i=0; i < fundefinitions.size(); i++)
             fundefinitions.elementAt(i).Accept(this);*/
     }   /* DONE */
@@ -768,24 +776,34 @@ public class SemanticAnalyzer implements ASTVisitor {
     
     public Object VisitStatements(ASTStatements statements) {
         AATSequential tree = null;
+        AATSequential topoftree = null;
+        AATStatement sm = null;
+        boolean startedtree = false;
         variableEnv.beginScope();
         for (int i = 0; i<statements.size(); i++) {
-            if (i == 0 && i == statements.size()-1){    //only one statement
-                AATStatement singletree = (AATStatement) statements.elementAt(i).Accept(this);
+            sm = (AATStatement) statements.elementAt(i).Accept(this);
+            if (sm == null) {
+                continue;
+            }
+            else if (!startedtree && i == statements.size()-1){    //only one statement
+                AATStatement singletree = sm;
                 variableEnv.endScope();
                 return singletree;
             }            
-            else if (i == 0 && i != statements.size()-1){
-                tree = (AATSequential) bt.sequentialStatement((AATStatement) statements.elementAt(i).Accept(this), null);
+            else if (!startedtree && i != statements.size()-1){
+                tree = (AATSequential) bt.sequentialStatement(sm, null);
+                topoftree = tree;
+                startedtree = true;
             } else if (i == statements.size()-1) {
                 tree.setright((AATStatement) statements.elementAt(i).Accept(this));
             } else {
-                tree.setright((AATSequential) bt.sequentialStatement((AATStatement) statements.elementAt(i).Accept(this), null));
+                tree.setright((AATSequential) bt.sequentialStatement(sm, null));
                 tree = (AATSequential) tree.right();
             }
         }
         variableEnv.endScope();
-        return tree;
+        System.out.println(topoftree.left());
+        return topoftree;
     }   /* DONE */
     
     public Object VisitVariableExpression(ASTVariableExpression varexpression) {
