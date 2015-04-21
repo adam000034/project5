@@ -365,7 +365,6 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param function
      */
     public Object VisitFunction(ASTFunction function) {
-        //////System.out.println("VisitFunction()");
         ResetOffsets();
         currentFunctionName = function.name();
         boolean hasPrototype;
@@ -655,24 +654,21 @@ public class SemanticAnalyzer implements ASTVisitor {
             fun = (AATStatement) fundefinitions.elementAt(i).Accept(this);
             if (fun == null) {
                 continue;
-            } else if (!startedtree && i == fundefinitions.size()-1){    //only one statement
-                AATStatement singletree = (AATStatement) fundefinitions.elementAt(i).Accept(this);
+            } else if (!startedtree && i == fundefinitions.size()-1) {    //only one statement
                 variableEnv.endScope();
-                return singletree;
+                return fun;
             } else if (!startedtree && i != fundefinitions.size()-1){
-                tree = (AATSequential) bt.sequentialStatement((AATStatement) fundefinitions.elementAt(i).Accept(this), null);
+                tree = (AATSequential) bt.sequentialStatement(fun, null);
                 topoftree = tree;
                 startedtree = true;
             } else if (i == fundefinitions.size()-1) {
-                tree.setright((AATStatement) fundefinitions.elementAt(i).Accept(this));
+                tree.setright(fun);
             } else {
-                tree.setright((AATSequential) bt.sequentialStatement((AATStatement) fundefinitions.elementAt(i).Accept(this), null));
+                tree.setright((AATSequential) bt.sequentialStatement(fun, null));
                 tree = (AATSequential) tree.right();
             }
         }
         return topoftree;
-        /*        for (int i=0; i < fundefinitions.size(); i++)
-            fundefinitions.elementAt(i).Accept(this);*/
     }   /* DONE */
     
     public Object VisitReturnStatement(ASTReturnStatement returnstatement) {
@@ -792,7 +788,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                 topoftree = tree;
                 startedtree = true;
             } else if (i == statements.size()-1) {
-                tree.setright((AATStatement) statements.elementAt(i).Accept(this));
+                tree.setright(sm);
             } else {
                 tree.setright((AATSequential) bt.sequentialStatement(sm, null));
                 tree = (AATSequential) tree.right();
@@ -838,7 +834,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         } else {
             return null;
         }
-    }   //TODO: do we just leave null since it is a definition? no assembly involved.
+    }   /* DONE */
 
     public Object VisitProgram(ASTProgram program) {
         program.classes().Accept(this);
