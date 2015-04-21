@@ -808,8 +808,22 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitVariableDefStatement(ASTVariableDefStatement varstatement) {
+        int varoffset = offset;
+        
         //Checks Type
         Type type = CheckType(varstatement.type(), varstatement.arraydimension(), varstatement.line());
+        TypeClass inittc = null;
+        
+        //Compare lhs and rhs
+        if (varstatement.init() != null) {
+            inittc = (TypeClass) varstatement.init().Accept(this);
+            Type inittype = inittc.type();
+            if (type != inittype) {
+                CompError.message(varstatement.line(), "Types did not match in variable definition statement: " + 
+                        varstatement.name() + ". ");
+            }
+        }
+        
         //Check variable name
         if (variableEnv.find(varstatement.name()) != null) {
             CompError.message(varstatement.line(), "Duplicate local variable " + 
@@ -817,7 +831,13 @@ public class SemanticAnalyzer implements ASTVisitor {
         } else {
             variableEnv.insert(varstatement.name(), new VariableEntry(type, IncrementOffset()));
         }
-        return null;
+        
+        if (varstatement.init() != null) {
+            AATMemory lhs = new AATMemory(bt.operatorExpression(new AATRegister(Register.FP()), bt.constantExpression(varoffset), AATOperator.MINUS));
+            return bt.assignmentStatement(lhs, inittc.value());
+        } else {
+            return null;
+        }
     }   //TODO: do we just leave null since it is a definition? no assembly involved.
 
     public Object VisitProgram(ASTProgram program) {
